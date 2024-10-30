@@ -127,13 +127,13 @@ function LessonView() {
               </button>
 
               {showSuggestions && (
-                <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border rounded shadow-lg">
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 bg-white border rounded-lg shadow-lg w-72">
                   <div className="p-1.5 space-y-0.5">
                     {SUGGESTED_QUESTIONS.map((question, idx) => (
                       <button
                         key={idx}
                         onClick={() => handleSuggestedQuestion(question)}
-                        className="w-full text-left px-2 py-1.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded transition-colors"
+                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded transition-colors"
                       >
                         {question}
                       </button>

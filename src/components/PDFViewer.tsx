@@ -38,6 +38,8 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content }) => {
       if (textToRead) {
         const utterance = new SpeechSynthesisUtterance(textToRead);
         utterance.lang = 'fr-FR';
+        utterance.rate = 1.5;
+        utterance.pitch = 1.0;
         speechSynthesis.speak(utterance);
       }
     } else {
