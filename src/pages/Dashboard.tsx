@@ -99,52 +99,47 @@ function Dashboard() {
   };
 
   return (
-    <div onClick={() => setActiveMenu(null)}>
+    <div onClick={() => setActiveMenu(null)} className="max-w-[95vw] mx-auto">
       <div className="mb-8 flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Votre Progression d'Études</h1>
           <p className="mt-2 text-gray-600">Suivez votre progression à travers 75 leçons médicales</p>
         </div>
-        <div className="flex gap-4">
-          <button
-            onClick={() => setShowStats(true)}
-            className="flex items-center gap-2 bg-white text-indigo-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <LineChart className="h-4 w-4" />
-            Mes Statistiques
-          </button>
-          <button className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-            Déconnexion
-          </button>
-        </div>
+        <button
+          onClick={() => setShowStats(true)}
+          className="flex items-center gap-2 bg-white text-indigo-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          <LineChart className="h-4 w-4" />
+          Mes Statistiques
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {lessons.map((lesson) => (
           <div
             key={lesson.id}
             onClick={() => handleCardClick(lesson.id)}
-            className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 cursor-pointer overflow-hidden relative"
+            className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 cursor-pointer overflow-hidden relative"
           >
-            <div className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center">
-                  <Book className="h-6 w-6 text-indigo-600" />
-                  <h3 className="ml-2 text-lg font-semibold text-gray-900">
+            <div className="p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-2 min-w-0">
+                  <Book className="h-5 w-5 text-indigo-600 flex-shrink-0 mt-0.5" />
+                  <h3 className="text-sm font-medium text-gray-900 line-clamp-2">
                     {lesson.title}
                   </h3>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-1 flex-shrink-0">
                   {lesson.progress >= 70 ? (
-                    <CheckCircle className="h-6 w-6 text-green-500" />
+                    <CheckCircle className="h-5 w-5 text-green-500" />
                   ) : lesson.progress > 0 ? (
-                    <AlertCircle className="h-6 w-6 text-yellow-500" />
+                    <AlertCircle className="h-5 w-5 text-yellow-500" />
                   ) : null}
                   <button 
-                    className="menu-button p-1 hover:bg-gray-100 rounded-full"
+                    className="p-1 hover:bg-gray-100 rounded-full"
                     onClick={(e) => handleMenuClick(e, lesson.id)}
                   >
-                    <MoreVertical className="h-5 w-5 text-gray-500" />
+                    <MoreVertical className="h-4 w-4 text-gray-500" />
                   </button>
                 </div>
               </div>
@@ -156,20 +151,20 @@ function Dashboard() {
                 />
               )}
 
-              <div className="mt-4">
+              <div className="mt-3">
                 <div className="flex justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-700">Progression</span>
-                  <span className="text-sm font-medium text-gray-700">{lesson.progress}%</span>
+                  <span className="text-xs font-medium text-gray-700">Progression</span>
+                  <span className="text-xs font-medium text-gray-700">{lesson.progress}%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-200 rounded-full h-1.5">
                   <div
-                    className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-indigo-600 h-1.5 rounded-full transition-all duration-300"
                     style={{ width: `${lesson.progress}%` }}
                   ></div>
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center text-sm text-gray-500">
+              <div className="mt-2 flex items-center text-xs text-gray-500">
                 <span>{lesson.quizzesTaken} quiz complétés</span>
                 <span className="mx-2">•</span>
                 <span>{lesson.lastAttempt}</span>

@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import LessonView from './pages/LessonView';
-import { Brain, ArrowLeft } from 'lucide-react';
+import { Brain, ArrowLeft, LogOut } from 'lucide-react';
 
 function NavigationBar() {
   const location = useLocation();
@@ -11,24 +11,25 @@ function NavigationBar() {
 
   return (
     <nav className="bg-white shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[95vw] mx-auto px-4">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Brain className="h-8 w-8 text-indigo-600" />
             <span className="ml-2 text-xl font-bold text-gray-800">MedPrep Pro</span>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-3">
             {isLessonView && (
               <button
                 onClick={() => navigate('/')}
-                className="flex items-center text-indigo-600 hover:text-indigo-700 transition-colors"
+                className="flex items-center text-gray-600 hover:text-gray-900"
               >
-                <ArrowLeft className="h-5 w-5 mr-1" />
-                <span>Back to Dashboard</span>
+                <ArrowLeft className="h-5 w-5 mr-2" />
+                Retour
               </button>
             )}
-            <button className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-              Sign Out
+            <button className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
+              <LogOut className="h-5 w-5" />
+              Déconnexion
             </button>
           </div>
         </div>
@@ -42,7 +43,7 @@ function App() {
     <BrowserRouter>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
         <NavigationBar />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="py-4">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/lesson/:id" element={<LessonView />} />
