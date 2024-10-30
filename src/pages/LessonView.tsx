@@ -1,24 +1,25 @@
 import React, { useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { MessageSquare, Play, PauseCircle, Book, Upload } from 'lucide-react';
+import { MessageSquare, Play, PauseCircle, Book } from 'lucide-react';
 import Split from 'react-split';
 import { useStore } from '../store';
+import { useFileUpload } from '../hooks/useFileUpload';
 import PDFViewer from '../components/PDFViewer';
 import { UploadProgressPopup } from '../components/UploadProgressPopup';
-import { uploadPDF } from '../services/uploadService';
+import { UploadButton } from '../components/UploadButton';
 
 function LessonView() {
-  const { id } = useParams();
-  const { lessons, uploadPdf } = useStore();
+  const { id } = useParams<{ id: string }>();
+  const { lessons } = useStore();
   const lesson = lessons.find(l => l.id === id);
+  const { uploadState, handleUpload, resetUploadState } = useFileUpload();
+  
   const [selectedText, setSelectedText] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [message, setMessage] = useState('');
   const [chatMessages, setChatMessages] = useState<Array<{type: 'user' | 'ai', content: string}>>([]);
   const [quizQuestions, setQuizQuestions] = useState<number>(10);
   const [showQuiz, setShowQuiz] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleTextSelection = useCallback(() => {
     const selection = window.getSelection();
@@ -26,6 +27,12 @@ function LessonView() {
       setSelectedText(selection.toString());
     }
   }, []);
+
+  const handleFileSelect = useCallback(async (file: File) => {
+    if (id) {
+      await handleUpload(file, id);
+    }
+  }, [id, handleUpload]);
 
   const handleSendMessage = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -41,40 +48,11 @@ function LessonView() {
     setMessage('');
   }, [message]);
 
-  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !id) return;
-
-    try {
-      setUploadProgress(0);
-      setUploadError(null);
-
-      const response = await uploadPDF(file, id, (progress) => {
-        const percentage = Math.round((progress.loaded / progress.total) * 100);
-        setUploadProgress(percentage);
-      });
-
-      if (response.pdfUrl) {
-        await uploadPdf(id, file);
-        setUploadProgress(100);
-
-        setTimeout(() => {
-          setUploadProgress(null);
-          setUploadError(null);
-        }, 1000);
-      } else {
-        throw new Error('No PDF URL received from server');
-      }
-    } catch (error) {
-      console.error('Error uploading PDF:', error);
-      setUploadError(error instanceof Error ? error.message : 'Failed to upload PDF');
-      setUploadProgress(null);
-    }
-  }, [id, uploadPdf]);
-
   const startQuiz = useCallback(() => {
     setShowQuiz(true);
   }, []);
+
+  if (!lesson) return null;
 
   return (
     <div className="h-[calc(100vh-8rem)]">
@@ -93,21 +71,10 @@ function LessonView() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-900 flex items-center">
               <Book className="mr-2" />
-              {lesson?.title}
+              {lesson.title}
             </h2>
             <div className="flex items-center gap-2">
-              {!lesson?.pdfUrl && (
-                <label className="cursor-pointer bg-indigo-50 text-indigo-600 px-3 py-1 rounded-md hover:bg-indigo-100 flex items-center gap-1">
-                  <Upload className="h-4 w-4" />
-                  Upload PDF
-                  <input
-                    type="file"
-                    accept=".pdf,application/pdf"
-                    className="hidden"
-                    onChange={handleFileUpload}
-                  />
-                </label>
-              )}
+              {!lesson.pdfUrl && <UploadButton onFileSelect={handleFileSelect} />}
               <button
                 onClick={() => setIsPlaying(!isPlaying)}
                 className="text-indigo-600 hover:text-indigo-700"
@@ -121,7 +88,7 @@ function LessonView() {
             className="flex-1 overflow-hidden"
             onMouseUp={handleTextSelection}
           >
-            {lesson?.pdfUrl ? (
+            {lesson.pdfUrl ? (
               <PDFViewer url={lesson.pdfUrl} />
             ) : (
               <div className="h-full flex items-center justify-center text-gray-500">
@@ -196,14 +163,11 @@ function LessonView() {
         </div>
       </Split>
 
-      {(uploadProgress !== null || uploadError) && (
+      {(uploadState.progress !== null || uploadState.error) && (
         <UploadProgressPopup 
-          progress={uploadProgress ?? 0}
-          error={uploadError}
-          onClose={() => {
-            setUploadProgress(null);
-            setUploadError(null);
-          }}
+          progress={uploadState.progress ?? 0}
+          error={uploadState.error}
+          onClose={resetUploadState}
         />
       )}
     </div>
