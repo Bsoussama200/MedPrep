@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Book, CheckCircle, AlertCircle, MoreVertical, Upload, RefreshCw, BookOpen, LineChart } from 'lucide-react';
+import { Book, CheckCircle, AlertCircle, MoreVertical, RefreshCw, BookOpen, LineChart } from 'lucide-react';
 import { useStore } from '../store';
 
 function StatsModal({ onClose }: { onClose: () => void }) {
@@ -13,14 +13,14 @@ function StatsModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-white rounded-xl p-6 w-[600px]" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-gray-900">My Learning Stats</h3>
+          <h3 className="text-xl font-bold text-gray-900">Mes Statistiques d'Apprentissage</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">×</button>
         </div>
         
         <div className="mb-6">
           <div className="text-center mb-4">
             <div className="text-3xl font-bold text-indigo-600">{globalPercentage}%</div>
-            <div className="text-sm text-gray-600">Global Progress</div>
+            <div className="text-sm text-gray-600">Progression Globale</div>
           </div>
           
           <div className="h-64 relative">
@@ -38,9 +38,9 @@ function StatsModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           <div className="flex justify-between text-sm text-gray-600 mt-2">
-            <span>Start</span>
-            <span>Time</span>
-            <span>Now</span>
+            <span>Début</span>
+            <span>Temps</span>
+            <span>Maintenant</span>
           </div>
         </div>
       </div>
@@ -49,20 +49,7 @@ function StatsModal({ onClose }: { onClose: () => void }) {
 }
 
 function CardMenu({ lessonId, onClose }: { lessonId: string; onClose: () => void }) {
-  const { uploadPdf } = useStore();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type === 'application/pdf') {
-      try {
-        await uploadPdf(lessonId, file);
-        onClose();
-      } catch (error) {
-        console.error('Error uploading PDF:', error);
-      }
-    }
-  };
+  const { resetProgress } = useStore();
 
   const handleReset = () => {
     resetProgress(lessonId);
@@ -77,30 +64,19 @@ function CardMenu({ lessonId, onClose }: { lessonId: string; onClose: () => void
   return (
     <div className="absolute right-0 top-8 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
       <div className="py-1" role="menu">
-        <label className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-          <Upload className="h-4 w-4 mr-3" />
-          Upload PDF
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,application/pdf"
-            className="hidden"
-            onChange={handleUpload}
-          />
-        </label>
         <button
           onClick={handleReset}
           className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
         >
           <RefreshCw className="h-4 w-4 mr-3" />
-          Reset Progress
+          Réinitialiser la Progression
         </button>
         <button
           onClick={handleQuiz}
           className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
         >
           <BookOpen className="h-4 w-4 mr-3" />
-          Take Quiz
+          Commencer le Quiz
         </button>
       </div>
     </div>
@@ -126,8 +102,8 @@ function Dashboard() {
     <div onClick={() => setActiveMenu(null)}>
       <div className="mb-8 flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Your Study Progress</h1>
-          <p className="mt-2 text-gray-600">Track your progress across 75 medical lessons</p>
+          <h1 className="text-3xl font-bold text-gray-900">Votre Progression d'Études</h1>
+          <p className="mt-2 text-gray-600">Suivez votre progression à travers 75 leçons médicales</p>
         </div>
         <div className="flex gap-4">
           <button
@@ -135,10 +111,10 @@ function Dashboard() {
             className="flex items-center gap-2 bg-white text-indigo-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             <LineChart className="h-4 w-4" />
-            My Stats
+            Mes Statistiques
           </button>
           <button className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-            Sign Out
+            Déconnexion
           </button>
         </div>
       </div>
@@ -182,7 +158,7 @@ function Dashboard() {
 
               <div className="mt-4">
                 <div className="flex justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-700">Progress</span>
+                  <span className="text-sm font-medium text-gray-700">Progression</span>
                   <span className="text-sm font-medium text-gray-700">{lesson.progress}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
@@ -194,7 +170,7 @@ function Dashboard() {
               </div>
 
               <div className="mt-4 flex items-center text-sm text-gray-500">
-                <span>{lesson.quizzesTaken} quizzes completed</span>
+                <span>{lesson.quizzesTaken} quiz complétés</span>
                 <span className="mx-2">•</span>
                 <span>{lesson.lastAttempt}</span>
               </div>

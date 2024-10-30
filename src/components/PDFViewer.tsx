@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
 
 interface PDFViewerProps {
   url: string;
@@ -19,6 +19,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url }) => {
 
   useEffect(() => {
     let isMounted = true;
+    let loadingTask: pdfjsLib.PDFDocumentLoadingTask | null = null;
 
     const loadPDF = async () => {
       if (!containerRef.current || !url) return;
@@ -32,18 +33,20 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url }) => {
       }
 
       try {
-        // Load the PDF directly using pdf.js
-        const loadingTask = pdfjsLib.getDocument({
+        loadingTask = pdfjsLib.getDocument({
           url,
           cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/cmaps/',
           cMapPacked: true,
-          onProgress: (progress) => {
-            if (isMounted && progress.total > 0) {
-              const percentage = (progress.loaded / progress.total) * 100;
-              setLoadingProgress(Math.round(percentage));
-            }
-          }
+          withCredentials: false,
+          rangeChunkSize: 65536,
         });
+
+        loadingTask.onProgress = (data) => {
+          if (isMounted && data.total > 0) {
+            const progress = (data.loaded / data.total) * 100;
+            setLoadingProgress(Math.round(progress));
+          }
+        };
 
         const pdf = await loadingTask.promise;
         
@@ -87,7 +90,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url }) => {
 
           const pageNumber = document.createElement('div');
           pageNumber.className = 'text-center text-sm text-gray-500 mt-2';
-          pageNumber.textContent = `Page ${pageNum} of ${pdf.numPages}`;
+          pageNumber.textContent = `Page ${pageNum} sur ${pdf.numPages}`;
           pageWrapper.appendChild(pageNumber);
 
           if (isMounted) {
@@ -102,18 +105,19 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url }) => {
       } catch (err) {
         console.error('Error loading PDF:', err);
         if (isMounted) {
-          setError('Failed to load PDF. Please try again.');
+          setError('Impossible de charger le PDF. Le fichier pourrait être protégé ou inaccessible.');
           setLoading(false);
         }
       }
     };
 
-    if (url) {
-      loadPDF();
-    }
+    loadPDF();
 
     return () => {
       isMounted = false;
+      if (loadingTask) {
+        loadingTask.destroy();
+      }
       if (containerRef.current) {
         containerRef.current.innerHTML = '';
       }
@@ -122,8 +126,20 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url }) => {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-full text-red-600 bg-red-50 rounded-lg p-4">
-        <p>{error}</p>
+      <div className="flex flex-col items-center justify-center h-full bg-red-50 rounded-lg p-8">
+        <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+        <p className="text-red-600 text-center mb-4">{error}</p>
+        <p className="text-sm text-gray-600 text-center">
+          Essayez de télécharger le PDF directement depuis:{' '}
+          <a 
+            href={url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-indigo-600 hover:text-indigo-800 underline"
+          >
+            ce lien
+          </a>
+        </p>
       </div>
     );
   }
@@ -135,7 +151,6 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url }) => {
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </div>
         
-        {/* Loading Progress */}
         <div className="w-64 bg-gray-200 rounded-full h-2.5 mb-4">
           <div
             className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300"
@@ -143,13 +158,12 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url }) => {
           />
         </div>
         <div className="text-sm text-gray-600 mb-4">
-          Loading: {Math.round(loadingProgress)}%
+          Chargement : {Math.round(loadingProgress)}%
         </div>
 
-        {/* Page Progress */}
         {totalPages > 0 && (
           <div className="text-sm text-gray-600">
-            Rendering pages: {loadedPages} of {totalPages}
+            Rendu des pages : {loadedPages} sur {totalPages}
           </div>
         )}
       </div>
