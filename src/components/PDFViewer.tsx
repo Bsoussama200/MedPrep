@@ -10,9 +10,10 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 interface PDFViewerProps {
   url?: string;
   title?: string;
+  content?: string;
 }
 
-const PDFViewer: React.FC<PDFViewerProps> = ({ url, title }) => {
+const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +34,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title }) => {
   const toggleReading = () => {
     setIsReading(!isReading);
     if (!isReading) {
-      const textToRead = containerRef.current?.textContent;
+      const textToRead = content || containerRef.current?.textContent;
       if (textToRead) {
         const utterance = new SpeechSynthesisUtterance(textToRead);
         utterance.lang = 'fr-FR';
@@ -80,10 +81,22 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title }) => {
     let loadingTask: pdfjsLib.PDFDocumentLoadingTask | null = null;
 
     const loadPDF = async () => {
-      if (!containerRef.current || !url) {
-        if (!url) {
+      if (!containerRef.current) return;
+      
+      if (content) {
+        if (isMounted) {
+          containerRef.current.innerHTML = '';
+          const contentDiv = document.createElement('div');
+          contentDiv.className = 'p-6 whitespace-pre-wrap font-serif text-lg leading-relaxed';
+          contentDiv.textContent = content;
+          containerRef.current.appendChild(contentDiv);
           setLoading(false);
         }
+        return;
+      }
+      
+      if (!url) {
+        setLoading(false);
         return;
       }
       
@@ -185,9 +198,9 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title }) => {
         containerRef.current.innerHTML = '';
       }
     };
-  }, [url]);
+  }, [url, content]);
 
-  if (!url && !title) {
+  if (!url && !content && !title) {
     return (
       <div className="flex items-center justify-center h-full bg-gray-50">
         <p className="text-gray-500">Sélectionnez une leçon pour commencer</p>
@@ -240,7 +253,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title }) => {
             </p>
           )}
         </div>
-      ) : loading ? (
+      ) : loading && !content ? (
         <div className="flex flex-col items-center justify-center h-full">
           <div className="mb-4">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
@@ -268,21 +281,23 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title }) => {
             ref={containerRef}
             className="w-full h-full overflow-y-auto pdf-container"
           />
-          <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg p-2 flex gap-2 items-center">
-            <button
-              onClick={() => setScale(s => Math.max(0.5, s - 0.1))}
-              className="p-2 hover:bg-gray-100 rounded text-gray-700"
-            >
-              -
-            </button>
-            <span className="px-2 min-w-[60px] text-center">{Math.round(scale * 100)}%</span>
-            <button
-              onClick={() => setScale(s => Math.min(2, s + 0.1))}
-              className="p-2 hover:bg-gray-100 rounded text-gray-700"
-            >
-              +
-            </button>
-          </div>
+          {!content && (
+            <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg p-2 flex gap-2 items-center">
+              <button
+                onClick={() => setScale(s => Math.max(0.5, s - 0.1))}
+                className="p-2 hover:bg-gray-100 rounded text-gray-700"
+              >
+                -
+              </button>
+              <span className="px-2 min-w-[60px] text-center">{Math.round(scale * 100)}%</span>
+              <button
+                onClick={() => setScale(s => Math.min(2, s + 0.1))}
+                className="p-2 hover:bg-gray-100 rounded text-gray-700"
+              >
+                +
+              </button>
+            </div>
+          )}
         </div>
       )}
 

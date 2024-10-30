@@ -80,7 +80,7 @@ function LessonView() {
         }}
       >
         <div className="h-full overflow-hidden bg-white rounded-lg shadow-sm">
-          <PDFViewer url={lesson.pdfUrl || ''} title={lesson.title} />
+          <PDFViewer url={lesson.pdfUrl} title={lesson.title} content={lesson.content} />
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col">

@@ -7,6 +7,23 @@ interface Store {
   resetProgress: (id: string) => void;
 }
 
+const lessonContent = `Cours De Résidanat
+Sujet : 1
+Les Accidents Vasculaires Cérébraux
+Étiopathogénie, Physiopathologie, Diagnostic, Traitement
+
+Objectifs :
+3. Décrire la vascularisation artérielle et veineuse de l'encéphale.
+4. Décrire la somatotopie corticale des aires corticales primaires motrices et somesthésiques.
+5. Décrire les mécanismes de régulation du débit sanguin cérébral.
+6. Expliquer la physiopathologie de l'accident vasculaire cérébral ischémique.
+7. Citer les facteurs de risque d'un accident vasculaire cérébral ischémique et hémorragique.
+8. Établir le diagnostic topographique de l'accident vasculaire cérébral ischémique et hémorragique à partir des données cliniques et radiologiques.
+9. Établir le diagnostic topographique de la thrombose veineuse cérébrale à partir des données cliniques et radiologiques.
+10. Identifier les étiologies de l'accident vasculaire cérébral ischémique et hémorragique selon l'âge.
+11. Planifier la prise en charge thérapeutique à la phase aiguë de l'accident vasculaire cérébral ischémique et hémorragique.
+12. Planifier la prise en charge au long cours et les mesures préventives des accidents vasculaires cérébraux ischémique et hémorragique.`;
+
 const lessonTitles = [
   "Les Accidents Vasculaires Cérébraux",
   "Adénopathies superficielles",
@@ -92,7 +109,8 @@ const initialLessons: Lesson[] = lessonTitles.map((title, i) => ({
   progress: Math.floor(Math.random() * 100),
   quizzesTaken: Math.floor(Math.random() * 5),
   lastAttempt: new Date(Date.now() - Math.random() * 10 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-  pdfUrl: undefined
+  pdfUrl: i === 0 ? '/pdfs/lesson-1.pdf' : undefined,
+  content: i === 0 ? lessonContent : undefined
 }));
 
 export const useStore = create<Store>((set) => ({

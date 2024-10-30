@@ -15,4 +15,5 @@ export interface Lesson {
   quizzesTaken: number;
   lastAttempt: string;
   pdfUrl?: string;
+  content?: string;
 }
