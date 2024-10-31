@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Loader2, AlertCircle, FileText, Play, PauseCircle, BookOpen } from 'lucide-react';
+import { Loader2, AlertCircle, FileText, Play, PauseCircle, BookOpen, UserCircle } from 'lucide-react';
 import QuizConfigModal from './QuizConfigModal';
 import QuizQuestion from './QuizQuestion';
+import MedicalCase from './MedicalCase';
 import { generateQuizQuestion } from '../services/quizService';
+import { generatePatientCase } from '../services/aiService';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
 
@@ -30,6 +32,9 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content }) => {
   } | null>(null);
   const [quizConfig, setQuizConfig] = useState<{ questions: number; difficulty: number } | null>(null);
   const [currentQuestionNumber, setCurrentQuestionNumber] = useState(1);
+  const [showMedicalCase, setShowMedicalCase] = useState(false);
+  const [medicalCaseData, setMedicalCaseData] = useState<{ initialCase: string } | null>(null);
+  const [isGeneratingCase, setIsGeneratingCase] = useState(false);
 
   const toggleReading = () => {
     setIsReading(!isReading);
@@ -44,6 +49,21 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content }) => {
       }
     } else {
       speechSynthesis.cancel();
+    }
+  };
+
+  const handleStartMedicalCase = async () => {
+    if (!title || isGeneratingCase) return;
+    
+    setIsGeneratingCase(true);
+    try {
+      const initialCase = await generatePatientCase(title);
+      setMedicalCaseData({ initialCase });
+      setShowMedicalCase(true);
+    } catch (error) {
+      console.error('Failed to generate medical case:', error);
+    } finally {
+      setIsGeneratingCase(false);
     }
   };
 
@@ -221,6 +241,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content }) => {
           <button
             onClick={toggleReading}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            title="Lecture audio"
           >
             {isReading ? (
               <PauseCircle className="h-5 w-5" />
@@ -231,8 +252,17 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content }) => {
           <button
             onClick={() => setShowQuizModal(true)}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            title="Commencer un quiz"
           >
             <BookOpen className="h-5 w-5" />
+          </button>
+          <button
+            onClick={handleStartMedicalCase}
+            disabled={isGeneratingCase}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            title="Simuler un cas clinique"
+          >
+            <UserCircle className={`h-5 w-5 ${isGeneratingCase ? 'animate-pulse' : ''}`} />
           </button>
         </div>
       </div>
@@ -324,6 +354,17 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content }) => {
             setCurrentQuizQuestion(null);
             setQuizConfig(null);
             setCurrentQuestionNumber(1);
+          }}
+        />
+      )}
+
+      {showMedicalCase && medicalCaseData && title && (
+        <MedicalCase
+          title={title}
+          initialCase={medicalCaseData.initialCase}
+          onClose={() => {
+            setShowMedicalCase(false);
+            setMedicalCaseData(null);
           }}
         />
       )}
