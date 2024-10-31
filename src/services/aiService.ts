@@ -100,27 +100,63 @@ export async function evaluateDiagnosis(diagnosis: string, lessonTitle: string, 
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     
-    const prompt = `En tant que professeur de médecine expérimenté, évalue le diagnostic proposé par l'étudiant pour le cas suivant.
+    // Check if the answer is a variation of "I don't know"
+    const dontKnowVariants = [
+      "je ne sais pas",
+      "je sais pas",
+      "pas sûr",
+      "pas sure",
+      "incertain",
+      "incertaine",
+      "difficile à dire",
+      "impossible à dire",
+      "je ne peux pas dire"
+    ];
 
-Cas clinique : "${initialCase}"
-Leçon : "${lessonTitle}"
-Diagnostic proposé : "${diagnosis}"
+    const isUnsureAnswer = dontKnowVariants.some(variant => 
+      diagnosis.toLowerCase().includes(variant)
+    );
 
-Instructions :
-1. Évalue la pertinence du diagnostic proposé
-2. Vérifie si le raisonnement clinique est cohérent
-3. Identifie les points forts et les points à améliorer
-4. Fournis des suggestions constructives
+    if (isUnsureAnswer) {
+      return {
+        isCorrect: false,
+        explanation: `Il est compréhensible d'avoir des doutes, et c'est une bonne chose de reconnaître quand on n'est pas sûr. Cependant, en tant que médecin, même face à l'incertitude, vous devez :
 
-Format de réponse requis :
-VERDICT: [CORRECT ou INCORRECT]
-EXPLICATION: [Explication détaillée et constructive]
+1. Formuler des hypothèses diagnostiques basées sur les symptômes présentés
+2. Proposer une démarche diagnostique pour confirmer ou infirmer ces hypothèses
+3. Identifier les urgences potentielles qui nécessitent une prise en charge immédiate
 
-Critères d'évaluation :
-- La justification du diagnostic
-- La cohérence avec les symptômes présentés
-- La qualité du raisonnement clinique
-- La prise en compte du contexte clinique`;
+Je vous encourage à reprendre l'interrogatoire, analyser les symptômes présentés, et proposer au moins une hypothèse diagnostique, même si vous n'êtes pas certain(e). C'est ainsi que vous développerez votre raisonnement clinique.`
+      };
+    }
+    
+    const prompt = `En tant que professeur de médecine expérimenté, évalue le diagnostic proposé par l'étudiant avec une attention particulière à la justification et aux informations disponibles.
+
+Cas clinique initial :
+${initialCase}
+
+Diagnostic proposé par l'étudiant :
+${diagnosis}
+
+Contexte : Leçon sur "${lessonTitle}"
+
+Critères d'évaluation stricts :
+1. L'étudiant doit justifier son diagnostic avec les informations DÉJÀ OBTENUES
+2. Un diagnostic sans justification ou basé sur des suppositions doit être considéré comme INCORRECT
+3. Un diagnostic correct mais précipité (sans avoir recueilli assez d'informations) doit être considéré comme INCORRECT
+4. L'étudiant doit démontrer un raisonnement clinique basé sur les symptômes et signes disponibles
+5. Les diagnostics différentiels doivent être considérés
+
+Ta réponse doit suivre ce format :
+---
+VERDICT: [INCORRECT] (Par défaut, considérer incorrect sauf si vraiment bien justifié)
+EXPLICATION:
+[Explication détaillée incluant :
+- Analyse du raisonnement
+- Informations manquantes cruciales
+- Ce qui aurait dû être fait avant de proposer un diagnostic
+- Suggestions pour améliorer la démarche diagnostique]
+---`;
 
     const result = await model.generateContent(prompt);
     const response = result.response.text();
@@ -129,7 +165,7 @@ Critères d'évaluation :
     const explanationMatch = response.match(/EXPLICATION:\s*([\s\S]*?)(?=---|$)/i);
     
     if (!verdictMatch || !explanationMatch) {
-      throw new Error('Format de réponse invalide');
+      throw new Error('Invalid response format');
     }
 
     return {
@@ -138,7 +174,10 @@ Critères d'évaluation :
     };
   } catch (error) {
     console.error('Diagnosis evaluation error:', error);
-    throw error;
+    return {
+      isCorrect: false,
+      explanation: "Une erreur est survenue lors de l'évaluation. Cependant, n'oubliez pas qu'un bon diagnostic doit toujours être basé sur une anamnèse complète, un examen clinique minutieux et une analyse systématique des symptômes. Continuez à pratiquer et à développer votre raisonnement clinique."
+    };
   }
 }
 
