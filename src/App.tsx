@@ -4,7 +4,12 @@ import Dashboard from './pages/Dashboard';
 import LessonView from './pages/LessonView';
 import { Brain, ArrowLeft, LogOut } from 'lucide-react';
 
-function NavigationBar() {
+interface NavigationBarProps {
+  selectedTheme?: string | null;
+  onBackToThemes?: () => void;
+}
+
+function NavigationBar({ selectedTheme, onBackToThemes }: NavigationBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const isLessonView = location.pathname.includes('/lesson/');
@@ -18,13 +23,21 @@ function NavigationBar() {
             <span className="ml-2 text-xl font-bold text-gray-800">MedPrep Pro</span>
           </div>
           <div className="flex items-center gap-3">
-            {isLessonView && (
+            {isLessonView ? (
               <button
                 onClick={() => navigate('/')}
                 className="flex items-center text-gray-600 hover:text-gray-900"
               >
                 <ArrowLeft className="h-5 w-5 mr-2" />
                 Retour
+              </button>
+            ) : selectedTheme && onBackToThemes && (
+              <button
+                onClick={onBackToThemes}
+                className="flex items-center text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeft className="h-5 w-5 mr-2" />
+                Retour aux thèmes
               </button>
             )}
             <button className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
@@ -39,13 +52,18 @@ function NavigationBar() {
 }
 
 function App() {
+  const [selectedTheme, setSelectedTheme] = React.useState<string | null>(null);
+
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
-        <NavigationBar />
+        <NavigationBar 
+          selectedTheme={selectedTheme} 
+          onBackToThemes={() => setSelectedTheme(null)} 
+        />
         <main className="py-4">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<Dashboard onThemeSelect={setSelectedTheme} selectedTheme={selectedTheme} />} />
             <Route path="/lesson/:id" element={<LessonView />} />
           </Routes>
         </main>

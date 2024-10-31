@@ -16,4 +16,11 @@ export interface Lesson {
   lastAttempt: string;
   pdfUrl?: string;
   content?: string;
+  theme: string;
+}
+
+export interface Theme {
+  name: string;
+  lessons: Lesson[];
+  averageProgress: number;
 }
