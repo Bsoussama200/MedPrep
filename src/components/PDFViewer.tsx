@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Loader2, AlertCircle, FileText, Play, PauseCircle, UserCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Play, PauseCircle, UserCircle } from 'lucide-react';
 import QuizConfigModal from './QuizConfigModal';
 import QuizQuestion from './QuizQuestion';
 import MedicalCase from './MedicalCase';
@@ -37,7 +37,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content }) => {
   const [isGeneratingCase, setIsGeneratingCase] = useState(false);
 
   const toggleReading = () => {
-    setIsReading(prev => !prev);
+    setIsReading(!isReading);
     if (!isReading) {
       const textToRead = content || containerRef.current?.textContent;
       if (textToRead) {
@@ -219,44 +219,56 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content }) => {
       if (containerRef.current) {
         containerRef.current.innerHTML = '';
       }
-      speechSynthesis.cancel();
     };
   }, [url, content]);
+
+  if (!url && !content && !title) {
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-50">
+        <p className="text-gray-500">Sélectionnez une leçon pour commencer</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
       <div className="flex items-center justify-between p-4 bg-white border-b">
         <div className="flex items-center">
-          <FileText className="h-6 w-6 text-indigo-600 mr-2" />
           <h2 className="text-xl font-semibold text-gray-900">{title || 'Document'}</h2>
         </div>
         <div className="flex gap-3">
           <button
             onClick={toggleReading}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm"
+            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm"
             title="Lecture audio"
           >
             {isReading ? (
-              <><PauseCircle className="h-4 w-4" /> Pause</>
+              <>
+                <PauseCircle className="h-4 w-4 text-indigo-600" />
+                <span className="text-indigo-600">Pause</span>
+              </>
             ) : (
-              <><Play className="h-4 w-4" /> Écouter</>
+              <>
+                <Play className="h-4 w-4 text-indigo-600" />
+                <span className="text-indigo-600">Écouter</span>
+              </>
             )}
           </button>
           <button
             onClick={() => setShowQuizModal(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm"
+            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm"
             title="Commencer un quiz"
           >
-            <span className="font-bold">QCM</span>
+            <span className="font-bold text-indigo-600">QCM</span>
           </button>
           <button
             onClick={handleStartMedicalCase}
             disabled={isGeneratingCase}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm"
+            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm"
             title="Simuler un cas clinique"
           >
-            <UserCircle className={`h-4 w-4 ${isGeneratingCase ? 'animate-pulse' : ''}`} />
-            Cas clinique
+            <UserCircle className={`h-4 w-4 text-indigo-600 ${isGeneratingCase ? 'animate-pulse' : ''}`} />
+            <span className="text-indigo-600">Cas clinique</span>
           </button>
         </div>
       </div>

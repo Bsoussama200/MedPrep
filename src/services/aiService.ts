@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Lesson } from '../types/upload';
 
 const genAI = new GoogleGenerativeAI('AIzaSyCU14JKKhknlQ9pQ9GImlEbf6Tz58NUJyQ');
 
@@ -51,10 +52,7 @@ Instructions :
 - Le patient ne doit PAS utiliser de termes médicaux techniques
 - Le cas doit nécessiter plus de questions pour établir un diagnostic
 
-Format : Une description à la première personne, comme si le patient se présentait.
-
-Exemple de structure :
-"Bonjour docteur, je suis [prénom], j'ai [âge] ans. Je viens vous voir car depuis quelque temps je me sens [symptôme principal vague]. [1-2 autres symptômes non spécifiques]."`;
+Format : Une description à la première personne, comme si le patient se présentait.`;
 
     const result = await model.generateContent(prompt);
     return result.response.text();
@@ -99,7 +97,6 @@ export async function evaluateDiagnosis(diagnosis: string, lessonTitle: string, 
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     
-    // Check if the answer is a variation of "I don't know"
     const dontKnowVariants = [
       "je ne sais pas",
       "je sais pas",
@@ -177,5 +174,48 @@ EXPLICATION:
       isCorrect: false,
       explanation: "Une erreur est survenue lors de l'évaluation. Cependant, n'oubliez pas qu'un bon diagnostic doit toujours être basé sur une anamnèse complète, un examen clinique minutieux et une analyse systématique des symptômes. Continuez à pratiquer et à développer votre raisonnement clinique."
     };
+  }
+}
+
+export async function evaluateProgress(lessons: Lesson[]): Promise<string> {
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    
+    const lessonsData = lessons.map(lesson => ({
+      title: lesson.title,
+      progress: lesson.progress,
+      quizzesTaken: lesson.quizzesTaken,
+      lastAttempt: lesson.lastAttempt
+    }));
+
+    const prompt = `En tant que professeur de médecine expérimenté, analyse la progression de l'étudiant dans ses leçons et fournis une évaluation détaillée.
+
+Données de progression :
+${JSON.stringify(lessonsData, null, 2)}
+
+Instructions :
+- Concentre-toi uniquement sur l'analyse des leçons et leur progression
+- Identifie les leçons bien maîtrisées (>70% de progression)
+- Identifie les leçons nécessitant plus de travail (<30% de progression)
+- Suggère un plan d'étude pour les prochains jours
+- Fournis des conseils spécifiques pour améliorer la compréhension des sujets difficiles
+- Évite les formules d'introduction ou de politesse
+- Utilise un ton professionnel et direct
+
+Format de réponse :
+- Paragraphes courts et concis
+- Pas de listes à puces
+- Évite les caractères spéciaux de formatage`;
+
+    const result = await model.generateContent(prompt);
+    return result.response.text()
+      .replace(/\*\*/g, '')
+      .replace(/\*/g, '')
+      .split('\n')
+      .filter(p => p.trim())
+      .join('\n\n');
+  } catch (error) {
+    console.error('Progress evaluation error:', error);
+    return "Une erreur est survenue lors de l'évaluation de votre progression. Veuillez réessayer plus tard.";
   }
 }

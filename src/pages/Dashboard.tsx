@@ -2,6 +2,41 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Book, CheckCircle, AlertCircle, MoreVertical, RefreshCw, BookOpen, LineChart } from 'lucide-react';
 import { useStore } from '../store';
+import { evaluateProgress } from '../services/aiService';
+
+interface EvaluationModalProps {
+  onClose: () => void;
+  evaluation?: string;
+  isLoading: boolean;
+}
+
+function EvaluationModal({ onClose, evaluation, isLoading }: EvaluationModalProps) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-xl p-6 w-[600px] max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-6 sticky top-0 bg-white z-10 pb-4">
+          <h3 className="text-xl font-bold text-gray-900">Évaluation IA</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">×</button>
+        </div>
+        
+        <div className="overflow-y-auto flex-1 pr-2">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4"></div>
+              <p className="text-gray-600">Génération de l'évaluation en cours...</p>
+            </div>
+          ) : (
+            <div className="prose prose-indigo max-w-none">
+              {evaluation?.split('\n\n').map((paragraph, index) => (
+                <p key={index} className="mb-4">{paragraph}</p>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function StatsModal({ onClose }: { onClose: () => void }) {
   const { lessons } = useStore();
@@ -88,6 +123,9 @@ function Dashboard() {
   const { lessons } = useStore();
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [showStats, setShowStats] = useState(false);
+  const [showEvaluation, setShowEvaluation] = useState(false);
+  const [evaluation, setEvaluation] = useState("");
+  const [isGeneratingEvaluation, setIsGeneratingEvaluation] = useState(false);
 
   const handleCardClick = (lessonId: string) => {
     navigate(`/lesson/${lessonId}`);
@@ -98,6 +136,23 @@ function Dashboard() {
     setActiveMenu(activeMenu === lessonId ? null : lessonId);
   };
 
+  const handleEvaluationClick = async () => {
+    if (isGeneratingEvaluation) return;
+    
+    setIsGeneratingEvaluation(true);
+    setShowEvaluation(true);
+    
+    try {
+      const result = await evaluateProgress(lessons);
+      setEvaluation(result);
+    } catch (error) {
+      console.error("Failed to generate evaluation:", error);
+      setEvaluation("Une erreur est survenue lors de la génération de l'évaluation.");
+    } finally {
+      setIsGeneratingEvaluation(false);
+    }
+  };
+
   return (
     <div onClick={() => setActiveMenu(null)} className="max-w-[95vw] mx-auto">
       <div className="mb-8 flex justify-between items-center">
@@ -105,13 +160,21 @@ function Dashboard() {
           <h1 className="text-3xl font-bold text-gray-900">Votre Progression d'Études</h1>
           <p className="mt-2 text-gray-600">Suivez votre progression à travers 75 leçons médicales</p>
         </div>
-        <button
-          onClick={() => setShowStats(true)}
-          className="flex items-center gap-2 bg-white text-indigo-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          <LineChart className="h-4 w-4" />
-          Mes Statistiques
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleEvaluationClick}
+            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm"
+          >
+            <span className="text-indigo-600">Évaluation IA</span>
+          </button>
+          <button
+            onClick={() => setShowStats(true)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm"
+          >
+            <LineChart className="h-4 w-4 text-indigo-600" />
+            <span className="text-indigo-600">Mes Statistiques</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -175,6 +238,16 @@ function Dashboard() {
       </div>
 
       {showStats && <StatsModal onClose={() => setShowStats(false)} />}
+      {showEvaluation && (
+        <EvaluationModal 
+          evaluation={evaluation}
+          isLoading={isGeneratingEvaluation}
+          onClose={() => {
+            setShowEvaluation(false);
+            setEvaluation("");
+          }}
+        />
+      )}
     </div>
   );
 }
