@@ -52,7 +52,10 @@ Instructions :
 - Le patient ne doit PAS utiliser de termes médicaux techniques
 - Le cas doit nécessiter plus de questions pour établir un diagnostic
 
-Format : Une description à la première personne, comme si le patient se présentait.`;
+Format : Une description à la première personne, comme si le patient se présentait.
+
+Exemple de structure :
+"Bonjour docteur, je suis [prénom], j'ai [âge] ans. Je viens vous voir car depuis quelque temps je me sens [symptôme principal vague]. [1-2 autres symptômes non spécifiques]."`;
 
     const result = await model.generateContent(prompt);
     return result.response.text();
@@ -97,62 +100,27 @@ export async function evaluateDiagnosis(diagnosis: string, lessonTitle: string, 
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     
-    const dontKnowVariants = [
-      "je ne sais pas",
-      "je sais pas",
-      "pas sûr",
-      "pas sure",
-      "incertain",
-      "incertaine",
-      "difficile à dire",
-      "impossible à dire",
-      "je ne peux pas dire"
-    ];
+    const prompt = `En tant que professeur de médecine expérimenté, évalue le diagnostic proposé par l'étudiant pour le cas suivant.
 
-    const isUnsureAnswer = dontKnowVariants.some(variant => 
-      diagnosis.toLowerCase().includes(variant)
-    );
+Cas clinique : "${initialCase}"
+Leçon : "${lessonTitle}"
+Diagnostic proposé : "${diagnosis}"
 
-    if (isUnsureAnswer) {
-      return {
-        isCorrect: false,
-        explanation: `Il est compréhensible d'avoir des doutes, et c'est une bonne chose de reconnaître quand on n'est pas sûr. Cependant, en tant que médecin, même face à l'incertitude, vous devez :
+Instructions :
+1. Évalue la pertinence du diagnostic proposé
+2. Vérifie si le raisonnement clinique est cohérent
+3. Identifie les points forts et les points à améliorer
+4. Fournis des suggestions constructives
 
-1. Formuler des hypothèses diagnostiques basées sur les symptômes présentés
-2. Proposer une démarche diagnostique pour confirmer ou infirmer ces hypothèses
-3. Identifier les urgences potentielles qui nécessitent une prise en charge immédiate
+Format de réponse requis :
+VERDICT: [CORRECT ou INCORRECT]
+EXPLICATION: [Explication détaillée et constructive]
 
-Je vous encourage à reprendre l'interrogatoire, analyser les symptômes présentés, et proposer au moins une hypothèse diagnostique, même si vous n'êtes pas certain(e). C'est ainsi que vous développerez votre raisonnement clinique.`
-      };
-    }
-    
-    const prompt = `En tant que professeur de médecine expérimenté, évalue le diagnostic proposé par l'étudiant avec une attention particulière à la justification et aux informations disponibles.
-
-Cas clinique initial :
-${initialCase}
-
-Diagnostic proposé par l'étudiant :
-${diagnosis}
-
-Contexte : Leçon sur "${lessonTitle}"
-
-Critères d'évaluation stricts :
-1. L'étudiant doit justifier son diagnostic avec les informations DÉJÀ OBTENUES
-2. Un diagnostic sans justification ou basé sur des suppositions doit être considéré comme INCORRECT
-3. Un diagnostic correct mais précipité (sans avoir recueilli assez d'informations) doit être considéré comme INCORRECT
-4. L'étudiant doit démontrer un raisonnement clinique basé sur les symptômes et signes disponibles
-5. Les diagnostics différentiels doivent être considérés
-
-Ta réponse doit suivre ce format :
----
-VERDICT: [INCORRECT] (Par défaut, considérer incorrect sauf si vraiment bien justifié)
-EXPLICATION:
-[Explication détaillée incluant :
-- Analyse du raisonnement
-- Informations manquantes cruciales
-- Ce qui aurait dû être fait avant de proposer un diagnostic
-- Suggestions pour améliorer la démarche diagnostique]
----`;
+Critères d'évaluation :
+- La justification du diagnostic
+- La cohérence avec les symptômes présentés
+- La qualité du raisonnement clinique
+- La prise en compte du contexte clinique`;
 
     const result = await model.generateContent(prompt);
     const response = result.response.text();
@@ -161,7 +129,7 @@ EXPLICATION:
     const explanationMatch = response.match(/EXPLICATION:\s*([\s\S]*?)(?=---|$)/i);
     
     if (!verdictMatch || !explanationMatch) {
-      throw new Error('Invalid response format');
+      throw new Error('Format de réponse invalide');
     }
 
     return {
@@ -170,10 +138,7 @@ EXPLICATION:
     };
   } catch (error) {
     console.error('Diagnosis evaluation error:', error);
-    return {
-      isCorrect: false,
-      explanation: "Une erreur est survenue lors de l'évaluation. Cependant, n'oubliez pas qu'un bon diagnostic doit toujours être basé sur une anamnèse complète, un examen clinique minutieux et une analyse systématique des symptômes. Continuez à pratiquer et à développer votre raisonnement clinique."
-    };
+    throw error;
   }
 }
 
@@ -184,35 +149,33 @@ export async function evaluateProgress(lessons: Lesson[]): Promise<string> {
     const lessonsData = lessons.map(lesson => ({
       title: lesson.title,
       progress: lesson.progress,
-      quizzesTaken: lesson.quizzesTaken,
-      lastAttempt: lesson.lastAttempt
+      quizzesTaken: lesson.quizzesTaken
     }));
 
-    const prompt = `En tant que professeur de médecine expérimenté, analyse la progression de l'étudiant dans ses leçons et fournis une évaluation détaillée.
+    const prompt = `En tant que professeur de médecine, analyse la progression de l'étudiant dans ses leçons et fournis une évaluation constructive.
 
 Données de progression :
 ${JSON.stringify(lessonsData, null, 2)}
 
 Instructions :
-- Concentre-toi uniquement sur l'analyse des leçons et leur progression
-- Identifie les leçons bien maîtrisées (>70% de progression)
-- Identifie les leçons nécessitant plus de travail (<30% de progression)
-- Suggère un plan d'étude pour les prochains jours
-- Fournis des conseils spécifiques pour améliorer la compréhension des sujets difficiles
-- Évite les formules d'introduction ou de politesse
-- Utilise un ton professionnel et direct
+- Concentre-toi sur les leçons avec une progression élevée et celles qui nécessitent plus de travail
+- Identifie les domaines qui méritent une attention particulière
+- Suggère des stratégies d'amélioration concrètes
+- Évite les formules d'introduction générales
+- Commence directement par l'analyse des progrès
+- Utilise un ton professionnel mais encourageant
+- Format en paragraphes clairs, pas de listes à puces
 
-Format de réponse :
-- Paragraphes courts et concis
-- Pas de listes à puces
-- Évite les caractères spéciaux de formatage`;
+Réponds en français.`;
 
     const result = await model.generateContent(prompt);
-    return result.response.text()
+    const response = result.response.text();
+    
+    return response
       .replace(/\*\*/g, '')
       .replace(/\*/g, '')
       .split('\n')
-      .filter(p => p.trim())
+      .filter(line => line.trim())
       .join('\n\n');
   } catch (error) {
     console.error('Progress evaluation error:', error);

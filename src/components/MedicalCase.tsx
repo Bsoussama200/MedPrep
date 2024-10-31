@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Stethoscope, MessageCircle, Send } from 'lucide-react';
+import { X, Stethoscope, MessageCircle, Send, AlertCircle } from 'lucide-react';
 import { getPatientResponse, evaluateDiagnosis } from '../services/aiService';
 
 interface MedicalCaseProps {
@@ -18,6 +18,7 @@ const MedicalCase: React.FC<MedicalCaseProps> = ({ title, initialCase, onClose }
   const [diagnosis, setDiagnosis] = useState('');
   const [diagnosisResult, setDiagnosisResult] = useState<{ isCorrect: boolean; explanation: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -31,18 +32,22 @@ const MedicalCase: React.FC<MedicalCaseProps> = ({ title, initialCase, onClose }
     if (!inputMessage.trim() || isLoading) return;
 
     setIsLoading(true);
+    setError(null);
     setMessages(prev => [...prev, { role: 'user', content: inputMessage }]);
     setInputMessage('');
 
     try {
       const response = await getPatientResponse(inputMessage, title, initialCase);
+      if (!response) throw new Error('Réponse invalide');
+      
       setMessages(prev => [...prev, { role: 'patient', content: response }]);
     } catch (error) {
       console.error('Error getting patient response:', error);
       setMessages(prev => [...prev, { 
         role: 'system', 
-        content: 'Désolé, je ne peux pas répondre pour le moment.' 
+        content: 'Je suis désolé, mais je ne peux pas répondre pour le moment. Veuillez reformuler votre question.' 
       }]);
+      setError('Erreur de communication avec le patient');
     } finally {
       setIsLoading(false);
     }
@@ -52,12 +57,21 @@ const MedicalCase: React.FC<MedicalCaseProps> = ({ title, initialCase, onClose }
     if (!diagnosis.trim() || isLoading) return;
 
     setIsLoading(true);
+    setError(null);
+
     try {
+      if (!title || !initialCase) {
+        throw new Error('Informations manquantes pour l\'évaluation');
+      }
+
       const result = await evaluateDiagnosis(diagnosis, title, initialCase);
+      if (!result) throw new Error('Résultat d\'évaluation invalide');
+
       setDiagnosisResult(result);
       setShowDiagnosisInput(false);
     } catch (error) {
       console.error('Error evaluating diagnosis:', error);
+      setError('Erreur lors de l\'évaluation du diagnostic. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
@@ -66,8 +80,7 @@ const MedicalCase: React.FC<MedicalCaseProps> = ({ title, initialCase, onClose }
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl w-full max-w-4xl flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b">
+        <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white z-10">
           <div className="flex items-center gap-2">
             <Stethoscope className="h-6 w-6 text-indigo-600" />
             <h2 className="text-xl font-bold text-gray-900">Simulation de Cas Clinique</h2>
@@ -77,7 +90,6 @@ const MedicalCase: React.FC<MedicalCaseProps> = ({ title, initialCase, onClose }
           </button>
         </div>
 
-        {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
           {messages.map((msg, idx) => (
             <div
@@ -90,12 +102,11 @@ const MedicalCase: React.FC<MedicalCaseProps> = ({ title, initialCase, onClose }
                   : 'bg-red-50 text-red-900'
               }`}
             >
-              {msg.role === 'user' && (
-                <div className="text-sm text-indigo-600 mb-1">Médecin</div>
-              )}
-              {msg.role === 'patient' && (
-                <div className="text-sm text-gray-600 mb-1">Patient</div>
-              )}
+              <div className={`text-sm mb-1 ${
+                msg.role === 'user' ? 'text-indigo-600' : 'text-gray-600'
+              }`}>
+                {msg.role === 'user' ? 'Médecin' : msg.role === 'patient' ? 'Patient' : 'Système'}
+              </div>
               {msg.content}
             </div>
           ))}
@@ -104,12 +115,17 @@ const MedicalCase: React.FC<MedicalCaseProps> = ({ title, initialCase, onClose }
               <div className="animate-pulse text-gray-400">En train de répondre...</div>
             </div>
           )}
+          {error && (
+            <div className="flex items-center gap-2 text-red-600 bg-red-50 p-4 rounded-lg">
+              <AlertCircle className="h-5 w-5" />
+              {error}
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Diagnosis Result - Now part of the scrollable area */}
         {diagnosisResult && (
-          <div className="px-6 py-4 border-t overflow-y-auto max-h-[30vh]">
+          <div className="px-6 py-4 border-t bg-white">
             <div className={`rounded-lg p-4 ${
               diagnosisResult.isCorrect ? 'bg-green-50' : 'bg-red-50'
             }`}>
@@ -123,9 +139,8 @@ const MedicalCase: React.FC<MedicalCaseProps> = ({ title, initialCase, onClose }
           </div>
         )}
 
-        {/* Input Area - Only show if no diagnosis result */}
         {!diagnosisResult && (
-          <div className="border-t p-6">
+          <div className="border-t p-6 bg-white sticky bottom-0">
             {!showDiagnosisInput ? (
               <div className="flex gap-2">
                 <input

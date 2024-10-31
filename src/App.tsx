@@ -7,9 +7,10 @@ import { Brain, ArrowLeft, LogOut } from 'lucide-react';
 interface NavigationBarProps {
   selectedTheme?: string | null;
   onBackToThemes?: () => void;
+  viewMode: 'lessons' | 'themes';
 }
 
-function NavigationBar({ selectedTheme, onBackToThemes }: NavigationBarProps) {
+function NavigationBar({ selectedTheme, onBackToThemes, viewMode }: NavigationBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const isLessonView = location.pathname.includes('/lesson/');
@@ -22,7 +23,7 @@ function NavigationBar({ selectedTheme, onBackToThemes }: NavigationBarProps) {
             <Brain className="h-8 w-8 text-indigo-600" />
             <span className="ml-2 text-xl font-bold text-gray-800">MedPrep Pro</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {isLessonView ? (
               <button
                 onClick={() => navigate('/')}
@@ -53,17 +54,31 @@ function NavigationBar({ selectedTheme, onBackToThemes }: NavigationBarProps) {
 
 function App() {
   const [selectedTheme, setSelectedTheme] = React.useState<string | null>(null);
+  const [viewMode, setViewMode] = React.useState<'lessons' | 'themes'>('themes');
+
+  const handleBackToThemes = () => {
+    setSelectedTheme(null);
+    setViewMode('themes');
+  };
 
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
         <NavigationBar 
           selectedTheme={selectedTheme} 
-          onBackToThemes={() => setSelectedTheme(null)} 
+          onBackToThemes={handleBackToThemes}
+          viewMode={viewMode}
         />
         <main className="py-4">
           <Routes>
-            <Route path="/" element={<Dashboard onThemeSelect={setSelectedTheme} selectedTheme={selectedTheme} />} />
+            <Route path="/" element={
+              <Dashboard 
+                onThemeSelect={setSelectedTheme} 
+                selectedTheme={selectedTheme}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+              />
+            } />
             <Route path="/lesson/:id" element={<LessonView />} />
           </Routes>
         </main>
