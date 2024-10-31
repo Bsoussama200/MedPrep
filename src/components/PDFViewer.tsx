@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Loader2, AlertCircle, FileText, Play, PauseCircle, BookOpen, UserCircle } from 'lucide-react';
+import { Loader2, AlertCircle, FileText, Play, PauseCircle, UserCircle } from 'lucide-react';
 import QuizConfigModal from './QuizConfigModal';
 import QuizQuestion from './QuizQuestion';
 import MedicalCase from './MedicalCase';
@@ -37,7 +37,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content }) => {
   const [isGeneratingCase, setIsGeneratingCase] = useState(false);
 
   const toggleReading = () => {
-    setIsReading(!isReading);
+    setIsReading(prev => !prev);
     if (!isReading) {
       const textToRead = content || containerRef.current?.textContent;
       if (textToRead) {
@@ -219,16 +219,9 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content }) => {
       if (containerRef.current) {
         containerRef.current.innerHTML = '';
       }
+      speechSynthesis.cancel();
     };
   }, [url, content]);
-
-  if (!url && !content && !title) {
-    return (
-      <div className="flex items-center justify-center h-full bg-gray-50">
-        <p className="text-gray-500">Sélectionnez une leçon pour commencer</p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -237,32 +230,33 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content }) => {
           <FileText className="h-6 w-6 text-indigo-600 mr-2" />
           <h2 className="text-xl font-semibold text-gray-900">{title || 'Document'}</h2>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button
             onClick={toggleReading}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm"
             title="Lecture audio"
           >
             {isReading ? (
-              <PauseCircle className="h-5 w-5" />
+              <><PauseCircle className="h-4 w-4" /> Pause</>
             ) : (
-              <Play className="h-5 w-5" />
+              <><Play className="h-4 w-4" /> Écouter</>
             )}
           </button>
           <button
             onClick={() => setShowQuizModal(true)}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm"
             title="Commencer un quiz"
           >
-            <BookOpen className="h-5 w-5" />
+            <span className="font-bold">QCM</span>
           </button>
           <button
             onClick={handleStartMedicalCase}
             disabled={isGeneratingCase}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm"
             title="Simuler un cas clinique"
           >
-            <UserCircle className={`h-5 w-5 ${isGeneratingCase ? 'animate-pulse' : ''}`} />
+            <UserCircle className={`h-4 w-4 ${isGeneratingCase ? 'animate-pulse' : ''}`} />
+            Cas clinique
           </button>
         </div>
       </div>

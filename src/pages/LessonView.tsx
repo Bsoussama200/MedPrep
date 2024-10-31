@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Split from 'react-split';
 import { MessageSquare, ArrowRight, ChevronUp, ChevronDown } from 'lucide-react';
@@ -20,7 +20,16 @@ function LessonView() {
   const [message, setMessage] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant', content: string }>>([]);
+  const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant' | 'system'; content: string }>>([]);
+
+  useEffect(() => {
+    if (lesson) {
+      setChatMessages([{
+        role: 'assistant',
+        content: `Bonjour! Je suis votre assistant pour le cours "${lesson.title}". Je peux vous aider à comprendre les concepts, répondre à vos questions et fournir des explications détaillées. Comment puis-je vous aider aujourd'hui ?`
+      }]);
+    }
+  }, [lesson]);
 
   const handleSendMessage = async (messageToSend: string) => {
     if (!messageToSend.trim() || isLoading || !lesson) return;
@@ -36,7 +45,7 @@ function LessonView() {
     } catch (error) {
       console.error('Error getting AI response:', error);
       setChatMessages(prev => [...prev, { 
-        role: 'assistant', 
+        role: 'system', 
         content: 'Je suis désolé, mais je ne peux pas répondre pour le moment. Veuillez réessayer.' 
       }]);
     } finally {
@@ -96,7 +105,9 @@ function LessonView() {
                 className={`p-4 rounded-lg ${
                   msg.role === 'user' 
                     ? 'bg-indigo-50 text-indigo-900 ml-4' 
-                    : 'bg-gray-50 text-gray-900 mr-4'
+                    : msg.role === 'assistant'
+                    ? 'bg-gray-50 text-gray-900 mr-4'
+                    : 'bg-red-50 text-red-900'
                 }`}
               >
                 {formatMessageContent(msg.content)}
