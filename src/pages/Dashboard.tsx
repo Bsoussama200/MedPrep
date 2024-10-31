@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Book, CheckCircle, AlertCircle, MoreVertical, RefreshCw, BookOpen, LineChart, Brain } from 'lucide-react';
+import { Book, CheckCircle, AlertCircle, MoreVertical, RefreshCw, BookOpen, LineChart, Brain, LayoutGrid, LayoutList } from 'lucide-react';
 import { useStore } from '../store';
 import { evaluateProgress } from '../services/aiService';
 
@@ -179,7 +179,7 @@ function Dashboard({ onThemeSelect, selectedTheme, viewMode, onViewModeChange }:
               onClick={() => onViewModeChange(viewMode === 'themes' ? 'lessons' : 'themes')}
               className="flex items-center gap-2 bg-white text-indigo-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              <Brain className="h-4 w-4" />
+              {viewMode === 'themes' ? <LayoutList className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
               Vue par {viewMode === 'themes' ? 'leçons' : 'thèmes'}
             </button>
           )}
