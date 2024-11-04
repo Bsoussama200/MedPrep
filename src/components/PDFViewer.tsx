@@ -1,6 +1,15 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Loader2, AlertCircle, Play, PauseCircle, UserCircle, Bolt, Highlighter } from 'lucide-react';
+import { 
+  Loader2, 
+  AlertCircle, 
+  Play, 
+  PauseCircle, 
+  UserCircle, 
+  Bolt,
+  Settings,
+  Highlighter
+} from 'lucide-react';
 import QuizConfigModal from './QuizConfigModal';
 import QuizQuestion from './QuizQuestion';
 import MedicalCase from './MedicalCase';
@@ -14,9 +23,16 @@ interface PDFViewerProps {
   title?: string;
   content?: string;
   onShowMarkedTexts?: () => void;
+  onOpenMarkerSettings?: () => void;
 }
 
-const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content, onShowMarkedTexts }) => {
+const PDFViewer: React.FC<PDFViewerProps> = ({ 
+  url, 
+  title, 
+  content,
+  onShowMarkedTexts,
+  onOpenMarkerSettings
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +55,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content, onShowMarked
   const [medicalCaseData, setMedicalCaseData] = useState<{ initialCase: string } | null>(null);
   const [isGeneratingCase, setIsGeneratingCase] = useState(false);
 
-  const toggleReading = () => {
+  const handleToggleReading = () => {
     setIsReading(!isReading);
     if (!isReading) {
       const textToRead = content || containerRef.current?.textContent;
@@ -257,7 +273,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content, onShowMarked
         <div className="flex gap-3">
           <div className="relative flex">
             <button
-              onClick={toggleReading}
+              onClick={handleToggleReading}
               className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm border-r-0"
               title="Lecture audio"
             >
@@ -298,13 +314,22 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content, onShowMarked
               </div>
             )}
           </div>
-          <button
-            onClick={onShowMarkedTexts}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm"
-          >
-            <Highlighter className="h-4 w-4 text-indigo-600" />
-            <span className="text-indigo-600">Textes marqués</span>
-          </button>
+          <div className="flex">
+            <button
+              onClick={onShowMarkedTexts}
+              className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm border-r-0"
+            >
+              <Highlighter className="h-4 w-4 text-indigo-600" />
+              <span className="text-indigo-600">Textes marqués</span>
+            </button>
+            <button
+              onClick={onOpenMarkerSettings}
+              className="flex items-center px-3 py-1.5 bg-white border border-gray-200 rounded-r-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+              title="Paramètres des marqueurs"
+            >
+              <Settings className="h-4 w-4 text-indigo-600" />
+            </button>
+          </div>
           <button
             onClick={() => setShowQuizModal(true)}
             className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm"
@@ -406,6 +431,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content, onShowMarked
           question={currentQuizQuestion.question}
           choices={currentQuizQuestion.choices}
           explanation={currentQuizQuestion.explanation}
+          hint=""
           onNext={handleNextQuestion}
           onClose={() => {
             setCurrentQuizQuestion(null);

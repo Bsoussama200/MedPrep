@@ -162,6 +162,7 @@ function LessonView() {
             title={lesson.title} 
             content={lesson.content}
             onShowMarkedTexts={() => setShowMarkedTexts(true)}
+            onOpenMarkerSettings={() => setShowMarkerSettings(true)}
           />
         </div>
 
