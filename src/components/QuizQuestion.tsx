@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, AlertCircle, CheckCircle, Send, MessageCircle, Loader2, Trophy, XCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, AlertCircle, CheckCircle, Send, MessageCircle, Loader2, Trophy, XCircle, HelpCircle } from 'lucide-react';
 import { getMedicalProfessorResponse } from '../services/aiService';
 
 interface QuizQuestionProps {
@@ -9,6 +9,7 @@ interface QuizQuestionProps {
   question: string;
   choices: Array<{ id: string; text: string; isCorrect: boolean }>;
   explanation: string;
+  hint: string;
   onNext: () => void;
   onClose: () => void;
 }
@@ -30,11 +31,14 @@ const QuizQuestion: React.FC<QuizQuestionProps> = ({
   question,
   choices,
   explanation,
+  hint,
   onNext,
   onClose,
 }) => {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const [hintedAnswers, setHintedAnswers] = useState<string[]>([]);
   const [furtherQuestion, setFurtherQuestion] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,15 +46,35 @@ const QuizQuestion: React.FC<QuizQuestionProps> = ({
   const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
   const [showResults, setShowResults] = useState(false);
   const isLastQuestion = currentQuestion === totalQuestions;
+  const hintButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Reset states when question changes
   useEffect(() => {
     setSelectedAnswer(null);
     setShowExplanation(false);
+    setShowHint(false);
+    setHintedAnswers([]);
     setMessages([]);
     setFurtherQuestion('');
     setIsTransitioning(false);
   }, [question]);
+
+  const handleHintClick = () => {
+    if (!showHint) {
+      // Get wrong answers
+      const wrongAnswers = choices
+        .filter(choice => !choice.isCorrect)
+        .map(choice => choice.id);
+      
+      // Randomly select 2 wrong answers to highlight
+      const shuffled = wrongAnswers.sort(() => 0.5 - Math.random());
+      const selectedWrong = shuffled.slice(0, 2);
+      
+      setHintedAnswers(selectedWrong);
+    } else {
+      setHintedAnswers([]);
+    }
+    setShowHint(!showHint);
+  };
 
   const handleNext = async () => {
     const isCorrect = selectedAnswer && choices.find(c => c.id === selectedAnswer)?.isCorrect;
@@ -91,9 +115,6 @@ Question de l'étudiant: ${studentQuestion}`;
       setIsLoading(false);
     }
   };
-
-  const isAnswerCorrect = selectedAnswer && 
-    choices.find(c => c.id === selectedAnswer)?.isCorrect;
 
   if (showResults) {
     const correctAnswers = quizResults.filter(r => r.correct).length;
@@ -179,9 +200,21 @@ Question de l'étudiant: ${studentQuestion}`;
               Question {currentQuestion} sur {totalQuestions}
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {!showExplanation && (
+              <button
+                ref={hintButtonRef}
+                onClick={handleHintClick}
+                className="p-1 hover:bg-gray-100 rounded-full relative"
+                title="Voir l'indice"
+              >
+                <HelpCircle className="h-5 w-5 text-gray-400" />
+              </button>
+            )}
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         <div className="space-y-6">
@@ -199,9 +232,13 @@ Question de l'étudiant: ${studentQuestion}`;
                         ? 'bg-green-50 border-green-200'
                         : 'bg-red-50 border-red-200'
                       : 'bg-indigo-50 border-indigo-200'
-                    : showExplanation && choice.isCorrect
-                    ? 'bg-green-50 border-green-200'
-                    : 'border-gray-200 hover:bg-gray-50'
+                    : showExplanation
+                      ? choice.isCorrect
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-red-50 border-red-200'
+                      : hintedAnswers.includes(choice.id)
+                        ? 'bg-red-50 border-red-200'
+                        : 'border-gray-200 hover:bg-gray-50'
                 }`}
                 disabled={showExplanation}
               >
