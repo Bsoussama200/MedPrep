@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, X } from 'lucide-react';
+import { Settings } from 'lucide-react';
 
 interface MarkerColor {
   color: string;
@@ -8,7 +8,7 @@ interface MarkerColor {
 }
 
 interface TextMarkerProps {
-  position: { x: number; y: number } | null;
+  position: { x: number; y: number };
   onClose: () => void;
   onColorSelect: (color: MarkerColor) => void;
   onOpenSettings: () => void;
@@ -20,31 +20,44 @@ const TextMarker: React.FC<TextMarkerProps> = ({
   onClose,
   onColorSelect,
   onOpenSettings,
-  colors,
+  colors
 }) => {
-  if (!position) return null;
+  // Calculate position to ensure the marker window stays within viewport
+  const calculatePosition = () => {
+    const windowHeight = window.innerHeight;
+    const windowWidth = window.innerWidth;
+    const markerHeight = 250; // Approximate height of marker window
+    const markerWidth = 200; // Approximate width of marker window
+    
+    let top = position.y;
+    let left = position.x;
+
+    // Adjust vertical position if too close to bottom
+    if (top + markerHeight > windowHeight) {
+      top = position.y - markerHeight - 20; // Position above the selection
+    }
+
+    // Adjust horizontal position if too close to right edge
+    if (left + markerWidth > windowWidth) {
+      left = windowWidth - markerWidth - 20;
+    }
+
+    return { top, left };
+  };
+
+  const { top, left } = calculatePosition();
 
   return (
     <div
-      className="fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 p-2 min-w-[200px]"
-      style={{
-        top: `${position.y}px`,
-        left: `${position.x}px`,
-      }}
+      className="fixed bg-white rounded-lg shadow-xl border border-gray-200 p-3 z-50"
+      style={{ top, left }}
     >
-      <div className="flex justify-between items-center mb-2 pb-2 border-b">
-        <span className="text-sm font-medium text-gray-700">Marquer le texte</span>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-      
       <div className="space-y-2">
-        {colors.map((color) => (
+        {colors.map((color, index) => (
           <button
-            key={color.color}
+            key={index}
             onClick={() => onColorSelect(color)}
-            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 rounded-md transition-colors"
+            className="w-full text-left px-3 py-2 rounded hover:bg-gray-50 flex items-center gap-2"
           >
             <div
               className="w-4 h-4 rounded"
@@ -53,15 +66,12 @@ const TextMarker: React.FC<TextMarkerProps> = ({
             <span className="text-sm text-gray-700">{color.label}</span>
           </button>
         ))}
-      </div>
-
-      <div className="mt-2 pt-2 border-t">
         <button
           onClick={onOpenSettings}
-          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-md transition-colors"
+          className="w-full text-left px-3 py-2 rounded hover:bg-gray-50 flex items-center gap-2 text-sm text-gray-700"
         >
-          <Settings className="h-4 w-4" />
-          Paramètres des marqueurs
+          <Settings className="w-4 h-4" />
+          Paramètres
         </button>
       </div>
     </div>

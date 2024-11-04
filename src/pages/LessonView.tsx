@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import Split from 'react-split';
 import { MessageSquare, ArrowRight, ChevronUp, ChevronDown } from 'lucide-react';
 import PDFViewer from '../components/PDFViewer';
-import { useStore } from '../store';
-import { getMedicalProfessorResponse } from '../services/aiService';
 import TextMarker from '../components/TextMarker';
 import MarkerSettings from '../components/MarkerSettings';
 import MarkedTextViewer from '../components/MarkedTextViewer';
+import { useStore } from '../store';
+import { getMedicalProfessorResponse } from '../services/aiService';
 
 interface MarkerColor {
   color: string;
@@ -21,18 +21,13 @@ interface MarkedText {
   timestamp: number;
 }
 
-const SUGGESTED_QUESTIONS = [
-  "Faites-moi un résumé de la leçon",
-  "Quels sont les points clés à retenir ?",
-  "Expliquez-moi les concepts difficiles",
-  "Donnez-moi des exemples pratiques"
-];
-
 const DEFAULT_MARKER_COLORS: MarkerColor[] = [
   { color: '#FFD700', label: 'Important', bgColor: '#FFD70033' },
   { color: '#FF69B4', label: 'À retenir', bgColor: '#FF69B433' },
   { color: '#32CD32', label: 'Définition', bgColor: '#32CD3233' },
   { color: '#87CEEB', label: 'Exemple', bgColor: '#87CEEB33' },
+  { color: '#FF4500', label: 'Critique', bgColor: '#FF450033' },
+  { color: '#9370DB', label: 'Question', bgColor: '#9370DB33' },
 ];
 
 function LessonView() {
@@ -44,11 +39,11 @@ function LessonView() {
   const [isLoading, setIsLoading] = useState(false);
   const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant' | 'system'; content: string }>>([]);
   const [markerPosition, setMarkerPosition] = useState<{ x: number; y: number } | null>(null);
-  const [showMarkerSettings, setShowMarkerSettings] = useState(false);
   const [markerColors, setMarkerColors] = useState<MarkerColor[]>(DEFAULT_MARKER_COLORS);
   const [markedTexts, setMarkedTexts] = useState<MarkedText[]>([]);
+  const [showMarkerSettings, setShowMarkerSettings] = useState(false);
   const [showMarkedTexts, setShowMarkedTexts] = useState(false);
-  const [selectedViewColor, setSelectedViewColor] = useState<MarkerColor | undefined>();
+  const [selectedFilterColor, setSelectedFilterColor] = useState<MarkerColor | undefined>();
 
   useEffect(() => {
     if (lesson) {
@@ -60,23 +55,82 @@ function LessonView() {
   }, [lesson]);
 
   useEffect(() => {
-    const handleSelectionChange = () => {
+    const handleSelection = () => {
       const selection = window.getSelection();
       if (selection && !selection.isCollapsed) {
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
-        setMarkerPosition({
-          x: rect.left + window.scrollX,
-          y: rect.bottom + window.scrollY,
-        });
-      } else {
-        setMarkerPosition(null);
+        
+        // Calculate position ensuring the marker window stays within viewport
+        const markerWidth = 200; // Approximate width of marker window
+        const markerHeight = 150; // Approximate height of marker window
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        let x = rect.left + window.scrollX;
+        let y = rect.bottom + window.scrollY;
+        
+        // Adjust horizontal position if too close to right edge
+        if (x + markerWidth > viewportWidth) {
+          x = viewportWidth - markerWidth - 20;
+        }
+        
+        // Adjust vertical position if too close to bottom edge
+        if (y + markerHeight > viewportHeight) {
+          y = rect.top + window.scrollY - markerHeight - 10;
+        }
+        
+        setMarkerPosition({ x, y });
       }
     };
 
-    document.addEventListener('selectionchange', handleSelectionChange);
-    return () => document.removeEventListener('selectionchange', handleSelectionChange);
+    document.addEventListener('mouseup', handleSelection);
+    return () => document.removeEventListener('mouseup', handleSelection);
   }, []);
+
+  const handleColorSelect = (color: MarkerColor) => {
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed) {
+      const text = selection.toString();
+      const markId = Date.now().toString();
+      const newMarkedText = {
+        text,
+        color,
+        timestamp: Date.now(),
+      };
+      setMarkedTexts(prev => [...prev, newMarkedText]);
+      
+      const range = selection.getRangeAt(0);
+      const mark = document.createElement('mark');
+      mark.style.backgroundColor = color.bgColor;
+      mark.style.color = 'inherit';
+      mark.dataset.markId = markId;
+      mark.className = 'relative group';
+      
+      // Create eraser button
+      const eraser = document.createElement('span');
+      eraser.className = 'absolute hidden group-hover:block -top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-full shadow-sm w-4 h-4 cursor-pointer flex items-center justify-center text-gray-500 hover:text-gray-700';
+      eraser.textContent = '×';
+      eraser.style.fontSize = '14px';
+      eraser.style.lineHeight = '14px';
+      
+      eraser.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const textNode = document.createTextNode(text);
+        if (mark.parentNode) {
+          mark.parentNode.replaceChild(textNode, mark);
+          setMarkedTexts(prev => prev.filter(mt => mt.timestamp !== newMarkedText.timestamp));
+        }
+      };
+      
+      mark.appendChild(document.createTextNode(text));
+      mark.appendChild(eraser);
+      range.deleteContents();
+      range.insertNode(mark);
+    }
+    setMarkerPosition(null);
+  };
 
   const handleSendMessage = async (messageToSend: string) => {
     if (!messageToSend.trim() || isLoading || !lesson) return;
@@ -108,27 +162,6 @@ function LessonView() {
   const handleSuggestedQuestion = (question: string) => {
     setShowSuggestions(false);
     handleSendMessage(question);
-  };
-
-  const handleColorSelect = (color: MarkerColor) => {
-    const selection = window.getSelection();
-    if (selection && !selection.isCollapsed) {
-      const text = selection.toString();
-      setMarkedTexts(prev => [...prev, {
-        text,
-        color,
-        timestamp: Date.now(),
-      }]);
-      
-      // Create a mark element
-      const mark = document.createElement('mark');
-      mark.style.backgroundColor = color.bgColor;
-      mark.style.color = 'inherit';
-      
-      const range = selection.getRangeAt(0);
-      range.surroundContents(mark);
-    }
-    setMarkerPosition(null);
   };
 
   const formatMessageContent = (content: string) => {
@@ -214,7 +247,12 @@ function LessonView() {
               {showSuggestions && (
                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 bg-white border rounded-lg shadow-lg w-72">
                   <div className="p-1.5 space-y-0.5">
-                    {SUGGESTED_QUESTIONS.map((question, idx) => (
+                    {[
+                      "Faites-moi un résumé de la leçon",
+                      "Quels sont les points clés à retenir ?",
+                      "Expliquez-moi les concepts difficiles",
+                      "Donnez-moi des exemples pratiques"
+                    ].map((question, idx) => (
                       <button
                         key={idx}
                         onClick={() => handleSuggestedQuestion(question)}
@@ -269,12 +307,9 @@ function LessonView() {
       {showMarkedTexts && (
         <MarkedTextViewer
           markedTexts={markedTexts}
-          onClose={() => {
-            setShowMarkedTexts(false);
-            setSelectedViewColor(undefined);
-          }}
-          selectedColor={selectedViewColor}
-          onColorSelect={setSelectedViewColor}
+          onClose={() => setShowMarkedTexts(false)}
+          selectedColor={selectedFilterColor}
+          onColorSelect={setSelectedFilterColor}
           colors={markerColors}
         />
       )}
