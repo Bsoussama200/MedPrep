@@ -5,12 +5,34 @@ import { MessageSquare, ArrowRight, ChevronUp, ChevronDown } from 'lucide-react'
 import PDFViewer from '../components/PDFViewer';
 import { useStore } from '../store';
 import { getMedicalProfessorResponse } from '../services/aiService';
+import TextMarker from '../components/TextMarker';
+import MarkerSettings from '../components/MarkerSettings';
+import MarkedTextViewer from '../components/MarkedTextViewer';
+
+interface MarkerColor {
+  color: string;
+  label: string;
+  bgColor: string;
+}
+
+interface MarkedText {
+  text: string;
+  color: MarkerColor;
+  timestamp: number;
+}
 
 const SUGGESTED_QUESTIONS = [
   "Faites-moi un résumé de la leçon",
   "Quels sont les points clés à retenir ?",
   "Expliquez-moi les concepts difficiles",
   "Donnez-moi des exemples pratiques"
+];
+
+const DEFAULT_MARKER_COLORS: MarkerColor[] = [
+  { color: '#FFD700', label: 'Important', bgColor: '#FFD70033' },
+  { color: '#FF69B4', label: 'À retenir', bgColor: '#FF69B433' },
+  { color: '#32CD32', label: 'Définition', bgColor: '#32CD3233' },
+  { color: '#87CEEB', label: 'Exemple', bgColor: '#87CEEB33' },
 ];
 
 function LessonView() {
@@ -21,6 +43,12 @@ function LessonView() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant' | 'system'; content: string }>>([]);
+  const [markerPosition, setMarkerPosition] = useState<{ x: number; y: number } | null>(null);
+  const [showMarkerSettings, setShowMarkerSettings] = useState(false);
+  const [markerColors, setMarkerColors] = useState<MarkerColor[]>(DEFAULT_MARKER_COLORS);
+  const [markedTexts, setMarkedTexts] = useState<MarkedText[]>([]);
+  const [showMarkedTexts, setShowMarkedTexts] = useState(false);
+  const [selectedViewColor, setSelectedViewColor] = useState<MarkerColor | undefined>();
 
   useEffect(() => {
     if (lesson) {
@@ -30,6 +58,25 @@ function LessonView() {
       }]);
     }
   }, [lesson]);
+
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      const selection = window.getSelection();
+      if (selection && !selection.isCollapsed) {
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        setMarkerPosition({
+          x: rect.left + window.scrollX,
+          y: rect.bottom + window.scrollY,
+        });
+      } else {
+        setMarkerPosition(null);
+      }
+    };
+
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => document.removeEventListener('selectionchange', handleSelectionChange);
+  }, []);
 
   const handleSendMessage = async (messageToSend: string) => {
     if (!messageToSend.trim() || isLoading || !lesson) return;
@@ -63,6 +110,27 @@ function LessonView() {
     handleSendMessage(question);
   };
 
+  const handleColorSelect = (color: MarkerColor) => {
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed) {
+      const text = selection.toString();
+      setMarkedTexts(prev => [...prev, {
+        text,
+        color,
+        timestamp: Date.now(),
+      }]);
+      
+      // Create a mark element
+      const mark = document.createElement('mark');
+      mark.style.backgroundColor = color.bgColor;
+      mark.style.color = 'inherit';
+      
+      const range = selection.getRangeAt(0);
+      range.surroundContents(mark);
+    }
+    setMarkerPosition(null);
+  };
+
   const formatMessageContent = (content: string) => {
     return content.split('\n\n').map((paragraph, index) => (
       <p key={index} className={index > 0 ? 'mt-3' : ''}>
@@ -89,7 +157,12 @@ function LessonView() {
         }}
       >
         <div className="h-full overflow-hidden bg-white rounded-lg shadow-sm">
-          <PDFViewer url={lesson.pdfUrl} title={lesson.title} content={lesson.content} />
+          <PDFViewer 
+            url={lesson.pdfUrl} 
+            title={lesson.title} 
+            content={lesson.content}
+            onShowMarkedTexts={() => setShowMarkedTexts(true)}
+          />
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col">
@@ -173,6 +246,37 @@ function LessonView() {
           </div>
         </div>
       </Split>
+
+      {markerPosition && (
+        <TextMarker
+          position={markerPosition}
+          onClose={() => setMarkerPosition(null)}
+          onColorSelect={handleColorSelect}
+          onOpenSettings={() => setShowMarkerSettings(true)}
+          colors={markerColors}
+        />
+      )}
+
+      {showMarkerSettings && (
+        <MarkerSettings
+          colors={markerColors}
+          onClose={() => setShowMarkerSettings(false)}
+          onSave={setMarkerColors}
+        />
+      )}
+
+      {showMarkedTexts && (
+        <MarkedTextViewer
+          markedTexts={markedTexts}
+          onClose={() => {
+            setShowMarkedTexts(false);
+            setSelectedViewColor(undefined);
+          }}
+          selectedColor={selectedViewColor}
+          onColorSelect={setSelectedViewColor}
+          colors={markerColors}
+        />
+      )}
     </div>
   );
 }

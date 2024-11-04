@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Loader2, AlertCircle, Play, PauseCircle, UserCircle, Bolt } from 'lucide-react';
+import { Loader2, AlertCircle, Play, PauseCircle, UserCircle, Bolt, Highlighter } from 'lucide-react';
 import QuizConfigModal from './QuizConfigModal';
 import QuizQuestion from './QuizQuestion';
 import MedicalCase from './MedicalCase';
@@ -13,9 +13,10 @@ interface PDFViewerProps {
   url?: string;
   title?: string;
   content?: string;
+  onShowMarkedTexts?: () => void;
 }
 
-const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content }) => {
+const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content, onShowMarkedTexts }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -297,6 +298,13 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content }) => {
               </div>
             )}
           </div>
+          <button
+            onClick={onShowMarkedTexts}
+            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm"
+          >
+            <Highlighter className="h-4 w-4 text-indigo-600" />
+            <span className="text-indigo-600">Textes marqués</span>
+          </button>
           <button
             onClick={() => setShowQuizModal(true)}
             className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm"
