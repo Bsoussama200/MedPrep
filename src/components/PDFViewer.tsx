@@ -6,7 +6,6 @@ import {
   Play, 
   PauseCircle, 
   UserCircle, 
-  Bolt,
   Settings,
   Highlighter
 } from 'lucide-react';
@@ -55,7 +54,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
   const [medicalCaseData, setMedicalCaseData] = useState<{ initialCase: string } | null>(null);
   const [isGeneratingCase, setIsGeneratingCase] = useState(false);
 
-  const handleToggleReading = () => {
+  const toggleReading = () => {
     setIsReading(!isReading);
     if (!isReading) {
       const textToRead = content || containerRef.current?.textContent;
@@ -273,7 +272,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
         <div className="flex gap-3">
           <div className="relative flex">
             <button
-              onClick={handleToggleReading}
+              onClick={toggleReading}
               className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm border-r-0"
               title="Lecture audio"
             >
@@ -291,9 +290,10 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
             </button>
             <button
               onClick={() => setShowSpeedControl(!showSpeedControl)}
-              className="px-2 py-1.5 bg-white border border-gray-200 rounded-r-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+              className="flex items-center px-3 py-1.5 bg-white border border-gray-200 rounded-r-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+              title="Paramètres de lecture"
             >
-              <Bolt className="h-4 w-4 text-indigo-600" />
+              <Settings className="h-4 w-4 text-indigo-600" />
             </button>
             {showSpeedControl && (
               <div className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg p-4 border z-10 min-w-[200px]">
