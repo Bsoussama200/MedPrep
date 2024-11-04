@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, AlertCircle, CheckCircle, Send, MessageCircle, Loader2 } from 'lucide-react';
+import { X, AlertCircle, CheckCircle, Send, MessageCircle, Loader2, Trophy, XCircle } from 'lucide-react';
 import { getMedicalProfessorResponse } from '../services/aiService';
 
 interface QuizQuestionProps {
@@ -18,6 +18,11 @@ interface Message {
   content: string;
 }
 
+interface QuizResult {
+  questionNumber: number;
+  correct: boolean;
+}
+
 const QuizQuestion: React.FC<QuizQuestionProps> = ({
   title,
   currentQuestion,
@@ -34,6 +39,8 @@ const QuizQuestion: React.FC<QuizQuestionProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
+  const [showResults, setShowResults] = useState(false);
   const isLastQuestion = currentQuestion === totalQuestions;
 
   // Reset states when question changes
@@ -46,12 +53,13 @@ const QuizQuestion: React.FC<QuizQuestionProps> = ({
   }, [question]);
 
   const handleNext = async () => {
-    setIsTransitioning(true);
-    
+    const isCorrect = selectedAnswer && choices.find(c => c.id === selectedAnswer)?.isCorrect;
+    setQuizResults(prev => [...prev, { questionNumber: currentQuestion, correct: !!isCorrect }]);
+
     if (isLastQuestion) {
-      onClose();
+      setShowResults(true);
     } else {
-      // Wait for transition animation
+      setIsTransitioning(true);
       await new Promise(resolve => setTimeout(resolve, 300));
       onNext();
     }
@@ -86,6 +94,70 @@ Question de l'étudiant: ${studentQuestion}`;
 
   const isAnswerCorrect = selectedAnswer && 
     choices.find(c => c.id === selectedAnswer)?.isCorrect;
+
+  if (showResults) {
+    const correctAnswers = quizResults.filter(r => r.correct).length;
+    const percentage = Math.round((correctAnswers / totalQuestions) * 100);
+    const getGrade = (percentage: number) => {
+      if (percentage >= 90) return 'A';
+      if (percentage >= 80) return 'B';
+      if (percentage >= 70) return 'C';
+      if (percentage >= 60) return 'D';
+      return 'F';
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl p-8 w-[600px] max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900">Résultats du Quiz</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-4">
+              <span className="text-4xl font-bold text-white">{percentage}%</span>
+            </div>
+            <div className="text-2xl font-bold text-gray-900 mb-2">
+              Note: {getGrade(percentage)}
+            </div>
+            <p className="text-gray-600">
+              {correctAnswers} réponses correctes sur {totalQuestions} questions
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {quizResults.map((result, index) => (
+              <div
+                key={index}
+                className={`p-4 rounded-lg flex items-center justify-between ${
+                  result.correct ? 'bg-green-50' : 'bg-red-50'
+                }`}
+              >
+                <span className="font-medium">Question {result.questionNumber}</span>
+                {result.correct ? (
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                ) : (
+                  <XCircle className="h-5 w-5 text-red-500" />
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 flex justify-center">
+            <button
+              onClick={onClose}
+              className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+            >
+              Terminer
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isTransitioning) {
     return (
@@ -147,12 +219,18 @@ Question de l'étudiant: ${studentQuestion}`;
           </div>
 
           {selectedAnswer && !showExplanation && (
-            <div className="flex justify-center">
+            <div className="flex justify-center gap-4">
               <button
                 onClick={() => setShowExplanation(true)}
                 className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
               >
                 Voir l'explication
+              </button>
+              <button
+                onClick={handleNext}
+                className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors font-medium"
+              >
+                {isLastQuestion ? 'Voir les résultats' : 'Question suivante'}
               </button>
             </div>
           )}
@@ -214,7 +292,7 @@ Question de l'étudiant: ${studentQuestion}`;
                   onClick={handleNext}
                   className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium whitespace-nowrap"
                 >
-                  {isLastQuestion ? 'Terminer' : 'Question suivante'}
+                  {isLastQuestion ? 'Voir les résultats' : 'Question suivante'}
                 </button>
               </div>
             </div>
