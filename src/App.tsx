@@ -8,27 +8,38 @@ interface NavigationBarProps {
   selectedTheme?: string | null;
   onBackToThemes?: () => void;
   viewMode: 'lessons' | 'themes';
+  onReset: () => void;
 }
 
-function NavigationBar({ selectedTheme, onBackToThemes, viewMode }: NavigationBarProps) {
+function NavigationBar({ selectedTheme, onBackToThemes, viewMode, onReset }: NavigationBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const isLessonView = location.pathname.includes('/lesson/');
+
+  const handleLogoClick = () => {
+    onReset();
+    navigate('/');
+  };
 
   return (
     <nav className="bg-white shadow-lg">
       <div className="max-w-[95vw] mx-auto px-4">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Stethoscope className="h-8 w-8 text-indigo-600" />
-            <span className="ml-2 text-xl font-bold">
-              Med
-              <span className="text-blue-500">S</span>
-              <span className="text-red-500">k</span>
-              <span className="text-yellow-500">o</span>
-              <span className="text-blue-500">o</span>
-              <span className="text-green-500">l</span>
-            </span>
+            <button 
+              onClick={handleLogoClick} 
+              className="flex items-center hover:opacity-80 transition-opacity"
+            >
+              <Stethoscope className="h-8 w-8 text-indigo-600" />
+              <span className="ml-2 text-2xl font-bold cursor-pointer">
+                Med
+                <span className="text-blue-500">S</span>
+                <span className="text-red-500">k</span>
+                <span className="text-yellow-500">o</span>
+                <span className="text-blue-500">o</span>
+                <span className="text-green-500">l</span>
+              </span>
+            </button>
           </div>
           <div className="flex items-center gap-4">
             {isLessonView ? (
@@ -68,6 +79,11 @@ function App() {
     setViewMode('themes');
   };
 
+  const handleReset = () => {
+    setSelectedTheme(null);
+    setViewMode('themes');
+  };
+
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
@@ -75,6 +91,7 @@ function App() {
           selectedTheme={selectedTheme} 
           onBackToThemes={handleBackToThemes}
           viewMode={viewMode}
+          onReset={handleReset}
         />
         <main className="py-4">
           <Routes>
