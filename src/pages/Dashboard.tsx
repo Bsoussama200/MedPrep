@@ -23,8 +23,9 @@ import {
 } from 'lucide-react';
 import { useStore } from '../store';
 import { evaluateProgress } from '../services/aiService';
+import StatsModal from '../components/StatsModal';
 
-// ... [Previous interfaces and StatsModal component remain exactly the same]
+// ... [Rest of the imports and interfaces remain the same]
 
 function EvaluationModal({ onClose, evaluation }: { onClose: () => void; evaluation: string }) {
   return (
@@ -80,6 +81,13 @@ function CardMenu({ lessonId, onClose }: { lessonId: string; onClose: () => void
       </div>
     </div>
   );
+}
+
+interface DashboardProps {
+  onThemeSelect: (theme: string) => void;
+  selectedTheme: string | null;
+  viewMode: 'lessons' | 'themes';
+  onViewModeChange: (mode: 'lessons' | 'themes') => void;
 }
 
 function Dashboard({ onThemeSelect, selectedTheme, viewMode, onViewModeChange }: DashboardProps) {
