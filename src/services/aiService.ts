@@ -3,7 +3,19 @@ import { Lesson } from '../types/upload';
 
 const genAI = new GoogleGenerativeAI('AIzaSyCU14JKKhknlQ9pQ9GImlEbf6Tz58NUJyQ');
 
+const handleAIError = (error: unknown, defaultMessage: string): never => {
+  console.error('AI Service Error:', error);
+  if (error instanceof Error) {
+    throw new Error(`${defaultMessage}: ${error.message}`);
+  }
+  throw new Error(defaultMessage);
+};
+
 export async function getMedicalProfessorResponse(message: string, lessonTitle?: string): Promise<string> {
+  if (!message.trim()) {
+    throw new Error('Message cannot be empty');
+  }
+
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     
@@ -22,20 +34,120 @@ export async function getMedicalProfessorResponse(message: string, lessonTitle?:
     Réponds en français de manière structurée et professionnelle.`;
 
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text()
+    if (!result || !result.response) {
+      throw new Error('Invalid AI response');
+    }
+
+    const response = result.response.text();
+    if (!response) {
+      throw new Error('Empty response from AI');
+    }
+
+    return response
       .replace(/\*\*/g, '')
       .replace(/\*/g, '')
       .split('\n')
       .filter(p => p.trim())
       .join('\n\n');
   } catch (error) {
-    console.error('AI response error:', error);
-    return 'Je suis désolé, mais je ne peux pas répondre pour le moment. Veuillez reformuler votre question.';
+    return handleAIError(error, 'Failed to get professor response');
+  }
+}
+
+export async function generateQuizQuestion(lessonTitle: string, difficulty: number): Promise<{
+  question: string;
+  choices: Array<{ id: string; text: string; isCorrect: boolean }>;
+  explanation: string;
+}> {
+  if (!lessonTitle.trim()) {
+    throw new Error('Lesson title cannot be empty');
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    
+    const prompt = `Générez une question de quiz sur "${lessonTitle}" avec un niveau de difficulté de ${difficulty}/100.
+
+Format requis (respectez EXACTEMENT ce format) :
+
+QUESTION: [votre question]
+A) [choix A]
+B) [choix B]
+C) [choix C]
+D) [choix D]
+CORRECT: [A, B, C, ou D]
+EXPLANATION: [explication détaillée]
+
+Règles importantes:
+- La question doit être claire et précise
+- Les choix doivent être distincts et plausibles
+- Une seule réponse correcte
+- L'explication doit être détaillée et éducative
+- Répondez en français
+- Respectez STRICTEMENT le format ci-dessus`;
+
+    const result = await model.generateContent(prompt);
+    if (!result || !result.response) {
+      throw new Error('Invalid AI response');
+    }
+
+    const response = result.response.text();
+    if (!response) {
+      throw new Error('Empty response from AI');
+    }
+
+    const sections = response.split('\n');
+    let question = '';
+    const choices: Array<{id: string; text: string; isCorrect: boolean}> = [];
+    let correctAnswer = '';
+    let explanation = '';
+    
+    for (const line of sections) {
+      if (line.startsWith('QUESTION:')) {
+        question = line.replace('QUESTION:', '').trim();
+      } else if (/^[A-D]\)/.test(line)) {
+        const id = line[0];
+        const text = line.slice(2).trim();
+        choices.push({ id, text, isCorrect: false });
+      } else if (line.startsWith('CORRECT:')) {
+        correctAnswer = line.replace('CORRECT:', '').trim();
+      } else if (line.startsWith('EXPLANATION:')) {
+        explanation = line.replace('EXPLANATION:', '').trim();
+      } else if (explanation && line.trim()) {
+        explanation += ' ' + line.trim();
+      }
+    }
+
+    if (!question || choices.length !== 4 || !correctAnswer || !explanation) {
+      throw new Error('Invalid quiz format received from AI');
+    }
+
+    const correctChoice = choices.find(c => c.id === correctAnswer);
+    if (!correctChoice) {
+      throw new Error('Invalid correct answer received from AI');
+    }
+    correctChoice.isCorrect = true;
+
+    return { question, choices, explanation };
+  } catch (error) {
+    return {
+      question: "Quelle est la première étape dans l'évaluation d'un patient?",
+      choices: [
+        { id: 'A', text: "L'anamnèse", isCorrect: true },
+        { id: 'B', text: "L'examen physique", isCorrect: false },
+        { id: 'C', text: "Les examens complémentaires", isCorrect: false },
+        { id: 'D', text: "Le diagnostic différentiel", isCorrect: false }
+      ],
+      explanation: "L'anamnèse est toujours la première étape cruciale dans l'évaluation d'un patient. Elle permet de recueillir les informations essentielles sur les symptômes, l'histoire de la maladie et les antécédents du patient."
+    };
   }
 }
 
 export async function generatePatientCase(lessonTitle: string): Promise<string> {
+  if (!lessonTitle.trim()) {
+    throw new Error('Lesson title cannot be empty');
+  }
+
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     
@@ -58,14 +170,26 @@ Exemple de structure :
 "Bonjour docteur, je suis [prénom], j'ai [âge] ans. Je viens vous voir car depuis quelque temps je me sens [symptôme principal vague]. [1-2 autres symptômes non spécifiques]."`;
 
     const result = await model.generateContent(prompt);
-    return result.response.text();
+    if (!result || !result.response) {
+      throw new Error('Invalid AI response');
+    }
+
+    const response = result.response.text();
+    if (!response) {
+      throw new Error('Empty response from AI');
+    }
+
+    return response;
   } catch (error) {
-    console.error('Case generation error:', error);
-    return 'Désolé, je ne peux pas générer de cas clinique pour le moment.';
+    return handleAIError(error, 'Failed to generate patient case');
   }
 }
 
 export async function getPatientResponse(question: string, lessonTitle: string, initialCase: string): Promise<string> {
+  if (!question.trim() || !lessonTitle.trim() || !initialCase.trim()) {
+    throw new Error('Missing required parameters');
+  }
+
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     
@@ -86,10 +210,18 @@ Instructions pour répondre à la question du médecin :
 Question du médecin : ${question}`;
 
     const result = await model.generateContent(prompt);
-    return result.response.text();
+    if (!result || !result.response) {
+      throw new Error('Invalid AI response');
+    }
+
+    const response = result.response.text();
+    if (!response) {
+      throw new Error('Empty response from AI');
+    }
+
+    return response;
   } catch (error) {
-    console.error('Patient response error:', error);
-    return 'Désolé, je ne me sens pas très bien, pourriez-vous répéter la question ?';
+    return handleAIError(error, 'Failed to get patient response');
   }
 }
 
@@ -97,10 +229,13 @@ export async function evaluateDiagnosis(diagnosis: string, lessonTitle: string, 
   isCorrect: boolean;
   explanation: string;
 }> {
+  if (!diagnosis.trim() || !lessonTitle.trim() || !initialCase.trim()) {
+    throw new Error('Missing required parameters');
+  }
+
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     
-    // Check if the answer is a variation of "I don't know"
     const dontKnowVariants = [
       "je ne sais pas",
       "je sais pas",
@@ -159,13 +294,20 @@ EXPLICATION:
 ---`;
 
     const result = await model.generateContent(prompt);
+    if (!result || !result.response) {
+      throw new Error('Invalid AI response');
+    }
+
     const response = result.response.text();
+    if (!response) {
+      throw new Error('Empty response from AI');
+    }
     
     const verdictMatch = response.match(/VERDICT:\s*(CORRECT|INCORRECT)/i);
     const explanationMatch = response.match(/EXPLICATION:\s*([\s\S]*?)(?=---|$)/i);
     
     if (!verdictMatch || !explanationMatch) {
-      throw new Error('Invalid response format');
+      throw new Error('Invalid response format from AI');
     }
 
     return {
@@ -173,7 +315,6 @@ EXPLICATION:
       explanation: explanationMatch[1].trim()
     };
   } catch (error) {
-    console.error('Diagnosis evaluation error:', error);
     return {
       isCorrect: false,
       explanation: "Une erreur est survenue lors de l'évaluation. Cependant, n'oubliez pas qu'un bon diagnostic doit toujours être basé sur une anamnèse complète, un examen clinique minutieux et une analyse systématique des symptômes. Continuez à pratiquer et à développer votre raisonnement clinique."
@@ -182,6 +323,10 @@ EXPLICATION:
 }
 
 export async function evaluateProgress(lessons: Lesson[]): Promise<string> {
+  if (!lessons || lessons.length === 0) {
+    throw new Error('No lessons provided for evaluation');
+  }
+
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     
@@ -208,7 +353,14 @@ Instructions :
 Réponds en français.`;
 
     const result = await model.generateContent(prompt);
+    if (!result || !result.response) {
+      throw new Error('Invalid AI response');
+    }
+
     const response = result.response.text();
+    if (!response) {
+      throw new Error('Empty response from AI');
+    }
     
     return response
       .replace(/\*\*/g, '')
@@ -217,7 +369,6 @@ Réponds en français.`;
       .filter(line => line.trim())
       .join('\n\n');
   } catch (error) {
-    console.error('Progress evaluation error:', error);
-    return "Une erreur est survenue lors de l'évaluation de votre progression. Veuillez réessayer plus tard.";
+    return handleAIError(error, 'Failed to evaluate progress');
   }
 }
