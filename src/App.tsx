@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import LessonView from './pages/LessonView';
-import { Brain, ArrowLeft, LogOut } from 'lucide-react';
+import { Stethoscope, ArrowLeft, LogOut } from 'lucide-react';
 
 interface NavigationBarProps {
   selectedTheme?: string | null;
@@ -20,8 +20,15 @@ function NavigationBar({ selectedTheme, onBackToThemes, viewMode }: NavigationBa
       <div className="max-w-[95vw] mx-auto px-4">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Brain className="h-8 w-8 text-indigo-600" />
-            <span className="ml-2 text-xl font-bold text-gray-800">MedPrep Pro</span>
+            <Stethoscope className="h-8 w-8 text-indigo-600" />
+            <span className="ml-2 text-xl font-bold">
+              Med
+              <span className="text-blue-500">S</span>
+              <span className="text-red-500">k</span>
+              <span className="text-yellow-500">o</span>
+              <span className="text-blue-500">o</span>
+              <span className="text-green-500">l</span>
+            </span>
           </div>
           <div className="flex items-center gap-4">
             {isLessonView ? (
@@ -53,8 +60,8 @@ function NavigationBar({ selectedTheme, onBackToThemes, viewMode }: NavigationBa
 }
 
 function App() {
-  const [selectedTheme, setSelectedTheme] = React.useState<string | null>(null);
-  const [viewMode, setViewMode] = React.useState<'lessons' | 'themes'>('themes');
+  const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'lessons' | 'themes'>('themes');
 
   const handleBackToThemes = () => {
     setSelectedTheme(null);

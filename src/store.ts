@@ -7,6 +7,21 @@ interface Store {
   resetProgress: (id: string) => void;
 }
 
+const createPlaceholderContent = (title: string) => `OBJECTIFS
+
+1- Définir ${title}
+2- Reconnaître les caractéristiques cliniques
+3- Établir le diagnostic différentiel
+4- Identifier les signes de gravité
+5- Hiérarchiser les examens complémentaires
+6- Établir le diagnostic étiologique
+
+Introduction :
+✓ Définition et physiopathologie
+✓ Aspects cliniques principaux
+✓ Démarche diagnostique
+✓ Principes thérapeutiques`;
+
 // Theme mapping for lessons
 const themeMapping: { [key: string]: string } = {
   "Les Accidents Vasculaires Cérébraux": "Neurologie-Neurochirurgie",
@@ -87,11 +102,6 @@ const themeMapping: { [key: string]: string } = {
   "Vaccinations": "Gastrologie"
 };
 
-const lessonContent = `Cours De Résidanat
-Sujet : 1
-Les Accidents Vasculaires Cérébraux
-Étiopathogénie, Physiopathologie, Diagnostic, Traitement`;
-
 const lessonTitles = Object.keys(themeMapping);
 
 const initialLessons: Lesson[] = lessonTitles.map((title, i) => ({
@@ -100,8 +110,8 @@ const initialLessons: Lesson[] = lessonTitles.map((title, i) => ({
   progress: Math.floor(Math.random() * 100),
   quizzesTaken: Math.floor(Math.random() * 5),
   lastAttempt: new Date(Date.now() - Math.random() * 10 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-  pdfUrl: i === 0 ? '/pdfs/lesson-1.pdf' : undefined,
-  content: i === 0 ? lessonContent : undefined,
+  pdfUrl: undefined,
+  content: createPlaceholderContent(title),
   theme: themeMapping[title]
 }));
 

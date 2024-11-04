@@ -12,13 +12,14 @@ import {
   LayoutGrid, 
   LayoutList, 
   Heart, 
-  Scissors, 
-  Stethoscope, 
+  Slice, 
+  Bean, 
   Baby, 
   Ear, 
   Eye, 
   Brain as BrainIcon,
-  Activity
+  Wind,
+  PersonStanding
 } from 'lucide-react';
 import { useStore } from '../store';
 import { evaluateProgress } from '../services/aiService';
@@ -127,14 +128,14 @@ function Dashboard({ onThemeSelect, selectedTheme, viewMode, onViewModeChange }:
 
   const themeIcons: { [key: string]: React.ReactNode } = {
     "Cardiologie": <Heart className="h-6 w-6 text-red-500" />,
-    "Chirurgie générale": <Scissors className="h-6 w-6 text-blue-500" />,
-    "Gastrologie": <Stethoscope className="h-6 w-6 text-green-500" />,
+    "Chirurgie générale": <Slice className="h-6 w-6 text-blue-500" />,
+    "Gastrologie": <Bean className="h-6 w-6 text-green-500" />,
     "Gynécologie": <Baby className="h-6 w-6 text-pink-500" />,
     "Neurologie-Neurochirurgie": <BrainIcon className="h-6 w-6 text-purple-500" />,
     "ORL": <Ear className="h-6 w-6 text-amber-500" />,
     "Ophtalmologie": <Eye className="h-6 w-6 text-cyan-500" />,
-    "Pneumo-allergologie": <Activity className="h-6 w-6 text-indigo-500" />,
-    "Psychiatrie": <Brain className="h-6 w-6 text-teal-500" />
+    "Pneumo-allergologie": <Wind className="h-6 w-6 text-indigo-500" />,
+    "Psychiatrie": <PersonStanding className="h-6 w-6 text-teal-500" />
   };
 
   const displayedLessons = selectedTheme

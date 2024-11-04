@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Loader2, AlertCircle, Play, PauseCircle, UserCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Play, PauseCircle, UserCircle, Bolt } from 'lucide-react';
 import QuizConfigModal from './QuizConfigModal';
 import QuizQuestion from './QuizQuestion';
 import MedicalCase from './MedicalCase';
@@ -25,6 +25,8 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content }) => {
   const [loadedPages, setLoadedPages] = useState(0);
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [isReading, setIsReading] = useState(false);
+  const [showSpeedControl, setShowSpeedControl] = useState(false);
+  const [readingSpeed, setReadingSpeed] = useState(1.5);
   const [currentQuizQuestion, setCurrentQuizQuestion] = useState<{
     question: string;
     choices: Array<{ id: string; text: string; isCorrect: boolean }>;
@@ -43,12 +45,27 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content }) => {
       if (textToRead) {
         const utterance = new SpeechSynthesisUtterance(textToRead);
         utterance.lang = 'fr-FR';
-        utterance.rate = 1.5;
+        utterance.rate = readingSpeed;
         utterance.pitch = 1.0;
         speechSynthesis.speak(utterance);
       }
     } else {
       speechSynthesis.cancel();
+    }
+  };
+
+  const handleSpeedChange = (newSpeed: number) => {
+    setReadingSpeed(newSpeed);
+    if (isReading) {
+      speechSynthesis.cancel();
+      const textToRead = content || containerRef.current?.textContent;
+      if (textToRead) {
+        const utterance = new SpeechSynthesisUtterance(textToRead);
+        utterance.lang = 'fr-FR';
+        utterance.rate = newSpeed;
+        utterance.pitch = 1.0;
+        speechSynthesis.speak(utterance);
+      }
     }
   };
 
@@ -237,23 +254,49 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, title, content }) => {
           <h2 className="text-xl font-semibold text-gray-900">{title || 'Document'}</h2>
         </div>
         <div className="flex gap-3">
-          <button
-            onClick={toggleReading}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm"
-            title="Lecture audio"
-          >
-            {isReading ? (
-              <>
-                <PauseCircle className="h-4 w-4 text-indigo-600" />
-                <span className="text-indigo-600">Pause</span>
-              </>
-            ) : (
-              <>
-                <Play className="h-4 w-4 text-indigo-600" />
-                <span className="text-indigo-600">Écouter</span>
-              </>
+          <div className="relative flex">
+            <button
+              onClick={toggleReading}
+              className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm border-r-0"
+              title="Lecture audio"
+            >
+              {isReading ? (
+                <>
+                  <PauseCircle className="h-4 w-4 text-indigo-600" />
+                  <span className="text-indigo-600">Pause</span>
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 text-indigo-600" />
+                  <span className="text-indigo-600">Écouter</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => setShowSpeedControl(!showSpeedControl)}
+              className="px-2 py-1.5 bg-white border border-gray-200 rounded-r-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+            >
+              <Bolt className="h-4 w-4 text-indigo-600" />
+            </button>
+            {showSpeedControl && (
+              <div className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg p-4 border z-10 min-w-[200px]">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Vitesse de lecture: {readingSpeed}x
+                  </label>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="3"
+                    step="0.1"
+                    value={readingSpeed}
+                    onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+              </div>
             )}
-          </button>
+          </div>
           <button
             onClick={() => setShowQuizModal(true)}
             className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm text-sm"
