@@ -19,13 +19,16 @@ body {
   min-height: 100vh;
 }
 
-.gutter-horizontal {
-  cursor: col-resize;
+.gutter {
   background-color: #f3f4f6;
   position: relative;
 }
 
-.gutter-horizontal::after {
+.gutter:hover {
+  background-color: #e5e7eb;
+}
+
+.gutter::after {
   content: "";
   position: absolute;
   left: 50%;
@@ -37,12 +40,12 @@ body {
   border-radius: 2px;
 }
 
-.gutter-horizontal:hover::after {
+.gutter:hover::after {
   background-color: #d1d5db;
 }
 
-.split {
-  display: flex;
+.gutter.gutter-horizontal {
+  cursor: col-resize;
 }
 
 .pdf-container {

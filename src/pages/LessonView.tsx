@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import Split from 'react-split';
+import Split from 'split.js';
 import { MessageSquare, ArrowRight, ChevronUp, ChevronDown } from 'lucide-react';
 import PDFViewer from '../components/PDFViewer';
 import TextMarker from '../components/TextMarker';
@@ -45,6 +45,9 @@ function LessonView() {
   const [showMarkedTexts, setShowMarkedTexts] = useState(false);
   const [selectedFilterColor, setSelectedFilterColor] = useState<MarkerColor | undefined>();
   const [currentSelection, setCurrentSelection] = useState<Selection | null>(null);
+  const pdfViewerRef = useRef<any>(null);
+  const splitInstance = useRef<Split.Instance | null>(null);
+  const splitContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (lesson) {
@@ -54,6 +57,25 @@ function LessonView() {
       }]);
     }
   }, [lesson]);
+
+  useEffect(() => {
+    if (splitContainerRef.current) {
+      splitInstance.current = Split(['.pdf-container', '.chat-container'], {
+        sizes: [70, 30],
+        minSize: [400, 300],
+        gutterSize: 8,
+        onDrag: () => {
+          window.dispatchEvent(new Event('resize'));
+        }
+      });
+
+      return () => {
+        if (splitInstance.current) {
+          splitInstance.current.destroy();
+        }
+      };
+    }
+  }, []);
 
   const handleSelection = useCallback((e: MouseEvent) => {
     const selection = window.getSelection();
@@ -157,6 +179,12 @@ function LessonView() {
     currentSelection.removeAllRanges();
   };
 
+  const handleLocateText = (text: string) => {
+    if (pdfViewerRef.current) {
+      pdfViewerRef.current.locateText(text);
+    }
+  };
+
   const handleSendMessage = async (messageToSend: string) => {
     if (!messageToSend.trim() || isLoading || !lesson) return;
 
@@ -202,20 +230,11 @@ function LessonView() {
   }
 
   return (
-    <div className="h-[calc(100vh-5rem)] mx-4">
-      <Split 
-        sizes={[70, 30]} 
-        minSize={[400, 300]}
-        gutterSize={8}
-        className="flex h-full"
-        gutter={() => {
-          const gutter = document.createElement('div');
-          gutter.className = 'gutter-horizontal';
-          return gutter;
-        }}
-      >
-        <div className="h-full overflow-hidden bg-white rounded-lg shadow-sm">
+    <div className="h-[calc(100vh-5rem)] mx-4" ref={splitContainerRef}>
+      <div className="flex h-full">
+        <div className="pdf-container h-full overflow-hidden bg-white rounded-lg shadow-sm">
           <PDFViewer 
+            ref={pdfViewerRef}
             url={lesson.pdfUrl} 
             title={lesson.title} 
             content={lesson.content}
@@ -224,7 +243,7 @@ function LessonView() {
           />
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col">
+        <div className="chat-container bg-white rounded-lg shadow-sm p-6 flex flex-col">
           <div className="flex items-center mb-4">
             <MessageSquare className="h-6 w-6 text-indigo-600 mr-2" />
             <h2 className="text-xl font-semibold text-gray-900">Assistant Médical IA</h2>
@@ -309,7 +328,7 @@ function LessonView() {
             </form>
           </div>
         </div>
-      </Split>
+      </div>
 
       {markerPosition && (
         <TextMarker
@@ -339,6 +358,7 @@ function LessonView() {
           selectedColor={selectedFilterColor}
           onColorSelect={setSelectedFilterColor}
           colors={markerColors}
+          onLocateText={handleLocateText}
         />
       )}
     </div>

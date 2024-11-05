@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Filter, Clock, Search } from 'lucide-react';
+import { X, Filter, Clock, Search, MapPin } from 'lucide-react';
 
 interface MarkerColor {
   color: string;
@@ -19,6 +19,7 @@ interface MarkedTextViewerProps {
   selectedColor?: MarkerColor;
   onColorSelect: (color: MarkerColor | undefined) => void;
   colors: MarkerColor[];
+  onLocateText: (text: string) => void;
 }
 
 const MarkedTextViewer: React.FC<MarkedTextViewerProps> = ({
@@ -26,7 +27,8 @@ const MarkedTextViewer: React.FC<MarkedTextViewerProps> = ({
   onClose,
   selectedColor,
   onColorSelect,
-  colors
+  colors,
+  onLocateText
 }) => {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [sortBy, setSortBy] = React.useState<'newest' | 'oldest'>('newest');
@@ -44,6 +46,11 @@ const MarkedTextViewer: React.FC<MarkedTextViewerProps> = ({
         ? b.timestamp - a.timestamp 
         : a.timestamp - b.timestamp;
     });
+
+  const handleLocateClick = (text: string) => {
+    onLocateText(text);
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -121,9 +128,15 @@ const MarkedTextViewer: React.FC<MarkedTextViewerProps> = ({
             {filteredTexts.map((markedText, index) => (
               <div
                 key={index}
-                className="p-6 rounded-xl border shadow-sm hover:shadow-md transition-shadow"
+                className="group p-6 rounded-xl border shadow-sm hover:shadow-md transition-shadow cursor-pointer relative"
                 style={{ backgroundColor: markedText.color.bgColor }}
+                onClick={() => handleLocateClick(markedText.text)}
               >
+                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="bg-white p-2 rounded-full shadow-sm">
+                    <MapPin className="h-5 w-5 text-indigo-600" />
+                  </div>
+                </div>
                 <div className="flex items-center gap-3 mb-4">
                   <div
                     className="w-4 h-4 rounded-full"
@@ -139,6 +152,9 @@ const MarkedTextViewer: React.FC<MarkedTextViewerProps> = ({
                 <p className="text-lg text-gray-900 whitespace-pre-wrap font-serif leading-relaxed">
                   {markedText.text}
                 </p>
+                <div className="mt-4 text-sm text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                  Cliquez pour localiser dans le cours
+                </div>
               </div>
             ))}
           </div>

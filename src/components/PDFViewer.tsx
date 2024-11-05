@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { 
   Loader2, 
@@ -25,13 +25,17 @@ interface PDFViewerProps {
   onOpenMarkerSettings?: () => void;
 }
 
-const PDFViewer: React.FC<PDFViewerProps> = ({ 
+export interface PDFViewerRef {
+  locateText: (text: string) => void;
+}
+
+const PDFViewer = forwardRef<PDFViewerRef, PDFViewerProps>(({ 
   url, 
   title, 
   content,
   onShowMarkedTexts,
   onOpenMarkerSettings
-}) => {
+}, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +57,71 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
   const [showMedicalCase, setShowMedicalCase] = useState(false);
   const [medicalCaseData, setMedicalCaseData] = useState<{ initialCase: string } | null>(null);
   const [isGeneratingCase, setIsGeneratingCase] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    locateText: (searchText: string) => {
+      if (!containerRef.current || !searchText) return;
+
+      const container = containerRef.current;
+      const textNodes = document.evaluate(
+        './/text()',
+        container,
+        null,
+        XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+        null
+      );
+
+      let found = false;
+      for (let i = 0; i < textNodes.snapshotLength && !found; i++) {
+        const textNode = textNodes.snapshotItem(i);
+        if (textNode?.textContent?.includes(searchText)) {
+          const range = document.createRange();
+          range.selectNode(textNode);
+          const rect = range.getBoundingClientRect();
+          
+          // Calculate the correct scroll position relative to the container
+          const containerRect = container.getBoundingClientRect();
+          const scrollTop = container.scrollTop + rect.top - containerRect.top - 100;
+          
+          // Scroll to the correct position
+          container.scrollTo({
+            top: scrollTop,
+            behavior: 'smooth'
+          });
+
+          // Create and position the highlight effect correctly
+          const highlight = document.createElement('div');
+          highlight.style.position = 'absolute';
+          highlight.style.left = `${rect.left - containerRect.left}px`;
+          highlight.style.top = `${rect.top - containerRect.top + container.scrollTop}px`;
+          highlight.style.width = `${rect.width}px`;
+          highlight.style.height = `${rect.height}px`;
+          highlight.style.backgroundColor = 'rgba(99, 102, 241, 0.2)';
+          highlight.style.animation = 'pulse 2s ease-in-out 3';
+          highlight.style.pointerEvents = 'none';
+          highlight.style.zIndex = '50';
+          
+          const style = document.createElement('style');
+          style.textContent = `
+            @keyframes pulse {
+              0% { transform: scale(1); opacity: 0.8; }
+              50% { transform: scale(1.05); opacity: 0.4; }
+              100% { transform: scale(1); opacity: 0.8; }
+            }
+          `;
+          document.head.appendChild(style);
+          
+          container.appendChild(highlight);
+          setTimeout(() => {
+            highlight.remove();
+            style.remove();
+          }, 6000);
+
+          found = true;
+        }
+      }
+    }
+  }));
 
   const toggleReading = () => {
     setIsReading(!isReading);
@@ -393,8 +462,14 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
         <div className="relative w-full h-full bg-gray-50">
           <div 
             ref={containerRef}
-            className="w-full h-full overflow-y-auto pdf-container"
-          />
+            className="w-full h-full overflow-y-auto pdf-container relative"
+          >
+            {content && (
+              <div className="p-6 whitespace-pre-wrap font-serif text-lg leading-relaxed">
+                {content}
+              </div>
+            )}
+          </div>
           {!content && (
             <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg p-2 flex gap-2 items-center">
               <button
@@ -453,6 +528,8 @@ const PDFViewer: React.FC<PDFViewerProps> = ({
       )}
     </div>
   );
-};
+});
+
+PDFViewer.displayName = 'PDFViewer';
 
 export default PDFViewer;

@@ -7,20 +7,141 @@ interface Store {
   resetProgress: (id: string) => void;
 }
 
-const createPlaceholderContent = (title: string) => `OBJECTIFS
+const createPlaceholderContent = (title: string) => `OBJECTIFS PÉDAGOGIQUES
 
-1- Définir ${title}
-2- Reconnaître les caractéristiques cliniques
-3- Établir le diagnostic différentiel
-4- Identifier les signes de gravité
-5- Hiérarchiser les examens complémentaires
-6- Établir le diagnostic étiologique
+1. Définir ${title} et comprendre son importance dans la pratique médicale
+2. Reconnaître les caractéristiques cliniques et leur variabilité
+3. Établir le diagnostic différentiel de manière systématique
+4. Identifier les signes de gravité et les urgences
+5. Hiérarchiser les examens complémentaires pertinents
+6. Établir le diagnostic étiologique avec précision
+7. Maîtriser la prise en charge thérapeutique
+8. Assurer le suivi et la prévention des complications
 
-Introduction :
-✓ Définition et physiopathologie
-✓ Aspects cliniques principaux
-✓ Démarche diagnostique
-✓ Principes thérapeutiques`;
+I. INTRODUCTION
+
+A. Définition
+• Présentation générale de ${title}
+• Contexte épidémiologique
+• Impact sur la santé publique
+
+B. Rappels Physiopathologiques
+• Mécanismes fondamentaux
+• Facteurs déclenchants
+• Évolution naturelle
+
+II. DIAGNOSTIC
+
+A. Circonstances de Découverte
+• Motifs de consultation
+• Situations typiques et atypiques
+• Populations à risque
+
+B. Signes Cliniques
+1. Signes Fonctionnels
+• Symptômes principaux
+• Signes associés
+• Chronologie d'apparition
+
+2. Signes Physiques
+• Examen général
+• Examen locorégional
+• Points d'appel systémiques
+
+C. Formes Cliniques
+• Formes typiques
+• Formes atypiques
+• Formes selon le terrain
+
+III. EXAMENS COMPLÉMENTAIRES
+
+A. Examens de Première Intention
+• Bilan initial systématique
+• Examens orientés
+• Interprétation des résultats
+
+B. Examens de Seconde Intention
+• Indications spécifiques
+• Hiérarchisation
+• Rapport coût-bénéfice
+
+IV. DIAGNOSTIC DIFFÉRENTIEL
+
+A. Diagnostics Urgents à Éliminer
+• Urgences vitales
+• Urgences fonctionnelles
+• Pièges diagnostiques
+
+B. Diagnostics Proches
+• Pathologies similaires
+• Éléments distinctifs
+• Stratégie diagnostique
+
+V. ÉTIOLOGIES
+
+A. Causes Principales
+• Classification
+• Fréquence relative
+• Facteurs favorisants
+
+B. Formes Secondaires
+• Pathologies associées
+• Syndromes spécifiques
+• Facteurs de risque
+
+VI. PRISE EN CHARGE THÉRAPEUTIQUE
+
+A. Traitement Symptomatique
+• Mesures générales
+• Traitements médicamenteux
+• Surveillance initiale
+
+B. Traitement Étiologique
+• Options thérapeutiques
+• Indications
+• Contre-indications
+
+C. Cas Particuliers
+• Adaptation selon le terrain
+• Situations d'urgence
+• Formes résistantes
+
+VII. ÉVOLUTION ET PRONOSTIC
+
+A. Évolution Naturelle
+• Histoire naturelle
+• Complications possibles
+• Facteurs pronostiques
+
+B. Surveillance
+• Rythme de suivi
+• Points de vigilance
+• Critères d'alerte
+
+VIII. PRÉVENTION
+
+A. Prévention Primaire
+• Mesures générales
+• Populations cibles
+• Stratégies préventives
+
+B. Prévention Secondaire
+• Dépistage
+• Surveillance
+• Éducation thérapeutique
+
+IX. POINTS CLÉS
+
+• Messages essentiels
+• Situations d'urgence
+• Erreurs à éviter
+• Recommandations pratiques
+
+X. POUR APPROFONDIR
+
+• Références bibliographiques
+• Recommandations officielles
+• Ressources complémentaires`;
 
 // Theme mapping for lessons
 const themeMapping: { [key: string]: string } = {
