@@ -7,16 +7,17 @@ import {
   MoreVertical, 
   RefreshCw, 
   BookOpen, 
-  LineChart, 
-  Brain, 
-  LayoutGrid, 
-  LayoutList, 
-  Heart, 
-  Slice, 
-  Bean, 
-  Baby, 
-  Ear, 
-  Eye, 
+  LineChart,
+  Brain,
+  LayoutGrid,
+  LayoutList,
+  Calendar,
+  Heart,
+  Slice,
+  Bean,
+  Baby,
+  Ear,
+  Eye,
   Brain as BrainIcon,
   Wind,
   PersonStanding
@@ -24,8 +25,14 @@ import {
 import { useStore } from '../store';
 import { evaluateProgress } from '../services/aiService';
 import StatsModal from '../components/StatsModal';
+import StudyPlanner from '../components/StudyPlanner';
 
-// ... [Rest of the imports and interfaces remain the same]
+interface NavigationBarProps {
+  selectedTheme?: string | null;
+  onBackToThemes?: () => void;
+  viewMode: 'lessons' | 'themes';
+  onReset: () => void;
+}
 
 function EvaluationModal({ onClose, evaluation }: { onClose: () => void; evaluation: string }) {
   return (
@@ -95,6 +102,7 @@ function Dashboard({ onThemeSelect, selectedTheme, viewMode, onViewModeChange }:
   const { lessons } = useStore();
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [showStats, setShowStats] = useState(false);
+  const [showPlanner, setShowPlanner] = useState(false);
   const [showEvaluation, setShowEvaluation] = useState(false);
   const [evaluation, setEvaluation] = useState('');
   const [isGeneratingEvaluation, setIsGeneratingEvaluation] = useState(false);
@@ -173,6 +181,13 @@ function Dashboard({ onThemeSelect, selectedTheme, viewMode, onViewModeChange }:
               Vue par {viewMode === 'themes' ? 'leçons' : 'thèmes'}
             </button>
           )}
+          <button
+            onClick={() => setShowPlanner(true)}
+            className="flex items-center gap-2 bg-white text-indigo-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <Calendar className="h-4 w-4" />
+            Planning d'études
+          </button>
           <button
             onClick={handleGenerateEvaluation}
             className="flex items-center gap-2 bg-white text-indigo-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -292,6 +307,7 @@ function Dashboard({ onThemeSelect, selectedTheme, viewMode, onViewModeChange }:
       </div>
 
       {showStats && <StatsModal onClose={() => setShowStats(false)} />}
+      {showPlanner && <StudyPlanner onClose={() => setShowPlanner(false)} />}
       {showEvaluation && (
         <EvaluationModal 
           onClose={() => setShowEvaluation(false)} 
