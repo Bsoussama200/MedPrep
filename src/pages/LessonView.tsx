@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import Split from 'react-split';
 import { MessageSquare, ArrowRight, ChevronUp, ChevronDown } from 'lucide-react';
 import PDFViewer from '../components/PDFViewer';
@@ -44,6 +44,7 @@ function LessonView() {
   const [showMarkerSettings, setShowMarkerSettings] = useState(false);
   const [showMarkedTexts, setShowMarkedTexts] = useState(false);
   const [selectedFilterColor, setSelectedFilterColor] = useState<MarkerColor | undefined>();
+  const [currentSelection, setCurrentSelection] = useState<Selection | null>(null);
 
   useEffect(() => {
     if (lesson) {
@@ -54,82 +55,106 @@ function LessonView() {
     }
   }, [lesson]);
 
-  useEffect(() => {
-    const handleSelection = () => {
-      const selection = window.getSelection();
-      if (selection && !selection.isCollapsed) {
-        const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-        
-        // Calculate position ensuring the marker window stays within viewport
-        const markerWidth = 200; // Approximate width of marker window
-        const markerHeight = 150; // Approximate height of marker window
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        
-        let x = rect.left + window.scrollX;
-        let y = rect.bottom + window.scrollY;
-        
-        // Adjust horizontal position if too close to right edge
-        if (x + markerWidth > viewportWidth) {
-          x = viewportWidth - markerWidth - 20;
-        }
-        
-        // Adjust vertical position if too close to bottom edge
-        if (y + markerHeight > viewportHeight) {
-          y = rect.top + window.scrollY - markerHeight - 10;
-        }
-        
-        setMarkerPosition({ x, y });
-      }
-    };
+  const handleSelection = useCallback((e: MouseEvent) => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) {
+      setMarkerPosition(null);
+      setCurrentSelection(null);
+      return;
+    }
 
-    document.addEventListener('mouseup', handleSelection);
-    return () => document.removeEventListener('mouseup', handleSelection);
+    const range = selection.getRangeAt(0);
+    const content = range.toString().trim();
+
+    if (!content) {
+      setMarkerPosition(null);
+      setCurrentSelection(null);
+      return;
+    }
+
+    const rect = range.getBoundingClientRect();
+    const markerWidth = 200;
+    const markerHeight = 150;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    let x = rect.left + window.scrollX;
+    let y = rect.bottom + window.scrollY;
+    
+    if (x + markerWidth > viewportWidth) {
+      x = viewportWidth - markerWidth - 20;
+    }
+    
+    if (y + markerHeight > viewportHeight) {
+      y = rect.top + window.scrollY - markerHeight - 10;
+    }
+
+    setCurrentSelection(selection);
+    setMarkerPosition({ x, y });
   }, []);
 
-  const handleColorSelect = (color: MarkerColor) => {
-    const selection = window.getSelection();
-    if (selection && !selection.isCollapsed) {
-      const text = selection.toString();
-      const markId = Date.now().toString();
-      const newMarkedText = {
-        text,
-        color,
-        timestamp: Date.now(),
-      };
-      setMarkedTexts(prev => [...prev, newMarkedText]);
-      
-      const range = selection.getRangeAt(0);
-      const mark = document.createElement('mark');
-      mark.style.backgroundColor = color.bgColor;
-      mark.style.color = 'inherit';
-      mark.dataset.markId = markId;
-      mark.className = 'relative group';
-      
-      // Create eraser button
-      const eraser = document.createElement('span');
-      eraser.className = 'absolute hidden group-hover:block -top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-full shadow-sm w-4 h-4 cursor-pointer flex items-center justify-center text-gray-500 hover:text-gray-700';
-      eraser.textContent = '×';
-      eraser.style.fontSize = '14px';
-      eraser.style.lineHeight = '14px';
-      
-      eraser.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const textNode = document.createTextNode(text);
-        if (mark.parentNode) {
-          mark.parentNode.replaceChild(textNode, mark);
-          setMarkedTexts(prev => prev.filter(mt => mt.timestamp !== newMarkedText.timestamp));
-        }
-      };
-      
-      mark.appendChild(document.createTextNode(text));
-      mark.appendChild(eraser);
-      range.deleteContents();
-      range.insertNode(mark);
+  const handleMouseDown = useCallback((e: MouseEvent) => {
+    const marker = document.getElementById('text-marker');
+    if (marker && !marker.contains(e.target as Node)) {
+      setMarkerPosition(null);
+      setCurrentSelection(null);
     }
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener('mouseup', handleSelection);
+    document.addEventListener('mousedown', handleMouseDown);
+
+    return () => {
+      document.removeEventListener('mouseup', handleSelection);
+      document.removeEventListener('mousedown', handleMouseDown);
+    };
+  }, [handleSelection, handleMouseDown]);
+
+  const handleColorSelect = (color: MarkerColor) => {
+    if (!currentSelection || currentSelection.isCollapsed) return;
+
+    const range = currentSelection.getRangeAt(0);
+    const text = range.toString();
+    const markId = Date.now().toString();
+    const newMarkedText = {
+      text,
+      color,
+      timestamp: Date.now(),
+    };
+
+    setMarkedTexts(prev => [...prev, newMarkedText]);
+    
+    const mark = document.createElement('mark');
+    mark.style.backgroundColor = color.bgColor;
+    mark.style.color = 'inherit';
+    mark.dataset.markId = markId;
+    mark.className = 'relative group';
+    
+    const eraser = document.createElement('span');
+    eraser.className = 'absolute hidden group-hover:block -top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-full shadow-sm w-4 h-4 cursor-pointer flex items-center justify-center text-gray-500 hover:text-gray-700';
+    eraser.textContent = '×';
+    eraser.style.fontSize = '14px';
+    eraser.style.lineHeight = '14px';
+    
+    eraser.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const textNode = document.createTextNode(text);
+      if (mark.parentNode) {
+        mark.parentNode.replaceChild(textNode, mark);
+        setMarkedTexts(prev => prev.filter(mt => mt.timestamp !== newMarkedText.timestamp));
+      }
+    };
+    
+    mark.appendChild(document.createTextNode(text));
+    mark.appendChild(eraser);
+    range.deleteContents();
+    range.insertNode(mark);
+
     setMarkerPosition(null);
+    setCurrentSelection(null);
+    currentSelection.removeAllRanges();
   };
 
   const handleSendMessage = async (messageToSend: string) => {
@@ -289,7 +314,10 @@ function LessonView() {
       {markerPosition && (
         <TextMarker
           position={markerPosition}
-          onClose={() => setMarkerPosition(null)}
+          onClose={() => {
+            setMarkerPosition(null);
+            setCurrentSelection(null);
+          }}
           onColorSelect={handleColorSelect}
           onOpenSettings={() => setShowMarkerSettings(true)}
           colors={markerColors}

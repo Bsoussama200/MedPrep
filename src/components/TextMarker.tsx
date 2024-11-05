@@ -22,22 +22,19 @@ const TextMarker: React.FC<TextMarkerProps> = ({
   onOpenSettings,
   colors
 }) => {
-  // Calculate position to ensure the marker window stays within viewport
   const calculatePosition = () => {
     const windowHeight = window.innerHeight;
     const windowWidth = window.innerWidth;
-    const markerHeight = 250; // Approximate height of marker window
-    const markerWidth = 200; // Approximate width of marker window
+    const markerHeight = 250;
+    const markerWidth = 200;
     
     let top = position.y;
     let left = position.x;
 
-    // Adjust vertical position if too close to bottom
     if (top + markerHeight > windowHeight) {
-      top = position.y - markerHeight - 20; // Position above the selection
+      top = position.y - markerHeight - 20;
     }
 
-    // Adjust horizontal position if too close to right edge
     if (left + markerWidth > windowWidth) {
       left = windowWidth - markerWidth - 20;
     }
@@ -47,8 +44,15 @@ const TextMarker: React.FC<TextMarkerProps> = ({
 
   const { top, left } = calculatePosition();
 
+  const handleColorSelect = (color: MarkerColor) => {
+    onColorSelect(color);
+    window.getSelection()?.removeAllRanges();
+    onClose();
+  };
+
   return (
     <div
+      id="text-marker"
       className="fixed bg-white rounded-lg shadow-xl border border-gray-200 p-3 z-50"
       style={{ top, left }}
     >
@@ -56,7 +60,7 @@ const TextMarker: React.FC<TextMarkerProps> = ({
         {colors.map((color, index) => (
           <button
             key={index}
-            onClick={() => onColorSelect(color)}
+            onClick={() => handleColorSelect(color)}
             className="w-full text-left px-3 py-2 rounded hover:bg-gray-50 flex items-center gap-2"
           >
             <div
