@@ -22,7 +22,7 @@ type WeeklySchedule = {
 const StudyPlanner: React.FC<StudyPlannerProps> = ({ onClose }) => {
   const { lessons } = useStore();
   const today = new Date().toISOString().split('T')[0];
-  const defaultExamDate = '2023-12-12';
+  const defaultExamDate = '2024-12-12'; // Updated to 2024
   
   const [startDate, setStartDate] = useState(today);
   const [examDate, setExamDate] = useState(defaultExamDate);
@@ -56,6 +56,7 @@ const StudyPlanner: React.FC<StudyPlannerProps> = ({ onClose }) => {
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('fr-FR', { 
+      weekday: 'long',
       day: 'numeric',
       month: 'short'
     });
@@ -316,7 +317,7 @@ const StudyPlanner: React.FC<StudyPlannerProps> = ({ onClose }) => {
               <div className="grid grid-cols-8 h-full">
                 {/* Time slots column */}
                 <div className="border-r">
-                  <div className="h-12 border-b"></div>
+                  <div className="h-16 border-b"></div>
                   {timeSlots.map((time) => (
                     <div key={time} className="h-20 border-b px-2 py-1 text-xs text-gray-500">
                       {time}
@@ -331,9 +332,13 @@ const StudyPlanner: React.FC<StudyPlannerProps> = ({ onClose }) => {
 
                   return (
                     <div key={dayIndex} className="border-r">
-                      <div className="h-12 border-b p-2 text-center">
-                        <div className="font-medium text-gray-900">{weekDays[dayIndex]}</div>
-                        <div className="text-sm text-gray-500">{formatDate(date)}</div>
+                      <div className="h-16 border-b p-2 text-center flex flex-col justify-center">
+                        <div className="font-medium text-gray-900 capitalize">
+                          {weekDays[dayIndex]}
+                        </div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          {date.getDate()} {date.toLocaleDateString('fr-FR', { month: 'short' })}
+                        </div>
                       </div>
                       <div className="relative">
                         {timeSlots.map((time) => (
