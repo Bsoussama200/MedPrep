@@ -2,12 +2,14 @@ import React, { useState, useMemo } from 'react';
 import { Calendar, Clock, ChevronLeft, ChevronRight, Loader2, X, AlertCircle } from 'lucide-react';
 import { generateStudyPlan } from '../services/aiService';
 import { useStore } from '../store';
+import { useNavigate } from 'react-router-dom';
 
 interface StudyPlannerProps {
   onClose: () => void;
 }
 
 interface CalendarEvent {
+  id: string;
   title: string;
   startTime: string;
   endTime: string;
@@ -20,9 +22,10 @@ type WeeklySchedule = {
 };
 
 const StudyPlanner: React.FC<StudyPlannerProps> = ({ onClose }) => {
+  const navigate = useNavigate();
   const { lessons } = useStore();
   const today = new Date().toISOString().split('T')[0];
-  const defaultExamDate = '2024-12-12'; // Updated to 2024
+  const defaultExamDate = '2024-12-12';
   
   const [startDate, setStartDate] = useState(today);
   const [examDate, setExamDate] = useState(defaultExamDate);
@@ -144,6 +147,7 @@ const StudyPlanner: React.FC<StudyPlannerProps> = ({ onClose }) => {
               }
               
               newSchedule[dateStr].push({
+                id: matchingLesson.id,
                 title: matchingLesson.title,
                 startTime: `${currentHour}:00`,
                 endTime: `${currentHour + 2}:00`,
@@ -180,6 +184,11 @@ const StudyPlanner: React.FC<StudyPlannerProps> = ({ onClose }) => {
     if (progress >= 80) return 'bg-green-100 border-green-500 text-green-700';
     if (progress >= 50) return 'bg-yellow-100 border-yellow-500 text-yellow-700';
     return 'bg-red-100 border-red-500 text-red-700';
+  };
+
+  const handleEventClick = (event: CalendarEvent) => {
+    navigate(`/lesson/${event.id}`);
+    onClose();
   };
 
   return (
@@ -366,7 +375,8 @@ const StudyPlanner: React.FC<StudyPlannerProps> = ({ onClose }) => {
                           return (
                             <div
                               key={eventIndex}
-                              className={`absolute left-1 right-1 rounded-lg border-l-4 p-2 overflow-hidden ${getEventStyle(event.progress)}`}
+                              onClick={() => handleEventClick(event)}
+                              className={`absolute left-1 right-1 rounded-lg border-l-4 p-2 overflow-hidden cursor-pointer transition-transform hover:scale-[1.02] hover:shadow-md ${getEventStyle(event.progress)}`}
                               style={{ top: `${top}px`, height: `${height}px` }}
                             >
                               <div className="font-medium text-sm truncate">{event.title}</div>
