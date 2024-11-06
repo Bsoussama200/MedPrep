@@ -24,3 +24,27 @@ export interface Theme {
   lessons: Lesson[];
   averageProgress: number;
 }
+
+export interface StudyPlanInput {
+  startDate: string;
+  examDate: string;
+  dailyHours: number;
+  breakStartTime: string;
+  breakEndTime: string;
+  lessons: Array<{
+    title: string;
+    progress: number;
+    theme: string;
+  }>;
+}
+
+export interface StudyPlanSchedule {
+  [day: string]: {
+    lessons: string[];
+  };
+}
+
+export interface StudyPlan {
+  weeklySchedule: StudyPlanSchedule;
+  recommendations: string[];
+}

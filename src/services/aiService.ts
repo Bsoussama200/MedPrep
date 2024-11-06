@@ -1,29 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { Lesson } from '../types/upload';
+import { Lesson, StudyPlanInput, StudyPlan } from '../types/upload';
 
 const genAI = new GoogleGenerativeAI('AIzaSyCU14JKKhknlQ9pQ9GImlEbf6Tz58NUJyQ');
-
-interface StudyPlanInput {
-  startDate: string;
-  examDate: string;
-  dailyHours: number;
-  lessons: Array<{
-    title: string;
-    progress: number;
-    theme: string;
-  }>;
-}
-
-interface WeeklySchedule {
-  [day: string]: {
-    lessons: string[];
-  };
-}
-
-interface StudyPlan {
-  weeklySchedule: WeeklySchedule;
-  recommendations: string[];
-}
 
 export async function generateStudyPlan(input: StudyPlanInput): Promise<StudyPlan> {
   try {
@@ -37,6 +15,7 @@ export async function generateStudyPlan(input: StudyPlanInput): Promise<StudyPla
 
 Période d'études: ${daysUntilExam} jours
 Heures d'étude quotidiennes: ${input.dailyHours}h
+Pause déjeuner: ${input.breakStartTime} - ${input.breakEndTime}
 
 Leçons à étudier:
 ${input.lessons.map(l => `- ${l.title} (Progression actuelle: ${l.progress}%, Thème: ${l.theme})`).join('\n')}
@@ -47,7 +26,8 @@ Instructions:
 3. Alterne entre les thèmes pour maintenir l'engagement
 4. Prévois des sessions de révision pour les leçons avancées
 5. Limite chaque session à 2 heures maximum
-6. Inclus des pauses entre les sessions
+6. Respecte la pause déjeuner
+7. Ne dépasse pas les heures quotidiennes spécifiées
 
 Format de réponse requis (JSON):
 {
@@ -78,14 +58,30 @@ Format de réponse requis (JSON):
     const plan = JSON.parse(jsonMatch[0]);
 
     // Validate the plan structure
-    if (!plan.weeklySchedule || !plan.recommendations) {
+    if (!plan.weeklySchedule || !plan.recommendations || !Array.isArray(plan.recommendations)) {
       throw new Error('Invalid plan structure');
     }
+
+    // Validate each day's schedule
+    const days = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+    days.forEach(day => {
+      if (!plan.weeklySchedule[day] || !Array.isArray(plan.weeklySchedule[day].lessons)) {
+        plan.weeklySchedule[day] = { lessons: [] };
+      }
+    });
+
+    // Ensure the number of lessons per day respects daily hours
+    Object.keys(plan.weeklySchedule).forEach(day => {
+      const maxLessons = Math.floor(input.dailyHours / 2); // 2 hours per lesson
+      if (plan.weeklySchedule[day].lessons.length > maxLessons) {
+        plan.weeklySchedule[day].lessons = plan.weeklySchedule[day].lessons.slice(0, maxLessons);
+      }
+    });
 
     return plan;
   } catch (error) {
     console.error('Study plan generation error:', error);
-    throw new Error('Failed to generate study plan. Please try again.');
+    throw new Error('Failed to generate study plan');
   }
 }
 

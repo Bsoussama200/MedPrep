@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Calendar, Clock, ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
+import { Calendar, Clock, ChevronLeft, ChevronRight, Loader2, X, AlertCircle } from 'lucide-react';
 import { generateStudyPlan } from '../services/aiService';
 import { useStore } from '../store';
 
@@ -21,15 +21,20 @@ type WeeklySchedule = {
 
 const StudyPlanner: React.FC<StudyPlannerProps> = ({ onClose }) => {
   const { lessons } = useStore();
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [examDate, setExamDate] = useState('');
+  const today = new Date().toISOString().split('T')[0];
+  const defaultExamDate = '2023-12-12';
+  
+  const [startDate, setStartDate] = useState(today);
+  const [examDate, setExamDate] = useState(defaultExamDate);
   const [dailyHours, setDailyHours] = useState(4);
+  const [breakStartTime, setBreakStartTime] = useState("12:00");
+  const [breakEndTime, setBreakEndTime] = useState("14:00");
   const [isLoading, setIsLoading] = useState(false);
   const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
   const [schedule, setSchedule] = useState<WeeklySchedule>({});
   const [error, setError] = useState<string | null>(null);
 
-  const weekDays = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+  const weekDays = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
   const timeSlots = Array.from({ length: 14 }, (_, i) => {
     const hour = 8 + i;
     return `${hour.toString().padStart(2, '0')}:00`;
@@ -56,22 +61,57 @@ const StudyPlanner: React.FC<StudyPlannerProps> = ({ onClose }) => {
     });
   };
 
+  const validateDates = () => {
+    const start = new Date(startDate);
+    const exam = new Date(examDate);
+    
+    if (start >= exam) {
+      setError('La date de début doit être antérieure à la date d\'examen');
+      return false;
+    }
+
+    const daysUntilExam = Math.ceil((exam.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysUntilExam < 7) {
+      setError('Veuillez prévoir au moins une semaine de préparation');
+      return false;
+    }
+
+    return true;
+  };
+
+  const validateTimes = () => {
+    const startHour = parseInt(breakStartTime.split(':')[0]);
+    const endHour = parseInt(breakEndTime.split(':')[0]);
+    
+    if (startHour >= endHour) {
+      setError('L\'heure de début de pause doit être antérieure à l\'heure de fin');
+      return false;
+    }
+
+    if (startHour < 8 || endHour > 22) {
+      setError('Les heures doivent être comprises entre 8h et 22h');
+      return false;
+    }
+
+    return true;
+  };
+
   const handleGeneratePlan = async () => {
     if (!examDate || isLoading) return;
 
-    if (new Date(startDate) >= new Date(examDate)) {
-      setError('La date de début doit être antérieure à la date d\'examen');
-      return;
-    }
+    setError(null);
+    
+    if (!validateDates() || !validateTimes()) return;
 
     setIsLoading(true);
-    setError(null);
 
     try {
       const generatedPlan = await generateStudyPlan({
         startDate,
         examDate,
         dailyHours,
+        breakStartTime,
+        breakEndTime,
         lessons: lessons.map(l => ({
           title: l.title,
           progress: l.progress,
@@ -89,7 +129,7 @@ const StudyPlanner: React.FC<StudyPlannerProps> = ({ onClose }) => {
         const dateStr = currentDate.toISOString().split('T')[0];
         newSchedule[dateStr] = [];
         
-        const dayName = currentDate.toLocaleDateString('fr-FR', { weekday: 'long' });
+        const dayName = currentDate.toLocaleDateString('fr-FR', { weekday: 'long' }).toLowerCase();
         const daySchedule = generatedPlan.weeklySchedule[dayName];
         
         if (daySchedule) {
@@ -97,6 +137,11 @@ const StudyPlanner: React.FC<StudyPlannerProps> = ({ onClose }) => {
           for (const lesson of daySchedule.lessons) {
             const matchingLesson = lessons.find(l => l.title === lesson);
             if (matchingLesson) {
+              // Skip break time
+              if (currentHour >= parseInt(breakStartTime) && currentHour < parseInt(breakEndTime)) {
+                currentHour = parseInt(breakEndTime);
+              }
+              
               newSchedule[dateStr].push({
                 title: matchingLesson.title,
                 startTime: `${currentHour}:00`,
@@ -105,6 +150,9 @@ const StudyPlanner: React.FC<StudyPlannerProps> = ({ onClose }) => {
                 theme: matchingLesson.theme
               });
               currentHour += 2;
+
+              // Stop if we've reached daily hours
+              if (newSchedule[dateStr].length * 2 >= dailyHours) break;
             }
           }
         }
@@ -174,6 +222,31 @@ const StudyPlanner: React.FC<StudyPlannerProps> = ({ onClose }) => {
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Début de la pause
+                  </label>
+                  <input
+                    type="time"
+                    value={breakStartTime}
+                    onChange={(e) => setBreakStartTime(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fin de la pause
+                  </label>
+                  <input
+                    type="time"
+                    value={breakEndTime}
+                    onChange={(e) => setBreakEndTime(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Heures d'étude par jour: {dailyHours}h
@@ -189,8 +262,9 @@ const StudyPlanner: React.FC<StudyPlannerProps> = ({ onClose }) => {
               </div>
 
               {error && (
-                <div className="bg-red-50 text-red-600 p-4 rounded-lg">
-                  {error}
+                <div className="bg-red-50 text-red-600 p-4 rounded-lg flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                  <p>{error}</p>
                 </div>
               )}
 
@@ -265,9 +339,21 @@ const StudyPlanner: React.FC<StudyPlannerProps> = ({ onClose }) => {
                         {timeSlots.map((time) => (
                           <div key={time} className="h-20 border-b"></div>
                         ))}
+                        {/* Break time indicator */}
+                        <div
+                          className="absolute left-0 right-0 bg-gray-100 border-y border-gray-200"
+                          style={{
+                            top: `${(parseInt(breakStartTime) - 8) * 80}px`,
+                            height: `${(parseInt(breakEndTime) - parseInt(breakStartTime)) * 80}px`
+                          }}
+                        >
+                          <div className="h-full flex items-center justify-center text-xs text-gray-500">
+                            Pause déjeuner
+                          </div>
+                        </div>
                         {dayEvents.map((event, eventIndex) => {
-                          const startHour = parseInt(event.startTime.split(':')[0]);
-                          const endHour = parseInt(event.endTime.split(':')[0]);
+                          const startHour = parseInt(event.startTime);
+                          const endHour = parseInt(event.endTime);
                           const duration = endHour - startHour;
                           const top = (startHour - 8) * 80;
                           const height = duration * 80;
