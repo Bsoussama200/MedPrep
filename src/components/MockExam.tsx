@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Clock, AlertCircle } from 'lucide-react';
 import { generateQuizQuestion } from '../services/quizService';
 import { useStore } from '../store';
@@ -25,17 +25,25 @@ const MockExam: React.FC<MockExamProps> = ({ onClose }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [showResults, setShowResults] = useState(false);
   const [examStarted, setExamStarted] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     loadNextQuestion();
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
-    if (examStarted) {
-      const timer = setInterval(() => {
+    if (examStarted && !showResults) {
+      timerRef.current = setInterval(() => {
         setTimeRemaining(prev => {
           if (prev <= 1) {
-            clearInterval(timer);
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+            }
             handleEndExam();
             return 0;
           }
@@ -43,9 +51,13 @@ const MockExam: React.FC<MockExamProps> = ({ onClose }) => {
         });
       }, 1000);
 
-      return () => clearInterval(timer);
+      return () => {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+        }
+      };
     }
-  }, [examStarted]);
+  }, [examStarted, showResults]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -89,7 +101,17 @@ const MockExam: React.FC<MockExamProps> = ({ onClose }) => {
   };
 
   const handleEndExam = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
     setShowResults(true);
+  };
+
+  const handleClose = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    onClose();
   };
 
   if (showResults) {
@@ -108,7 +130,7 @@ const MockExam: React.FC<MockExamProps> = ({ onClose }) => {
         <div className="bg-white rounded-xl p-8 w-[600px] max-h-[90vh] overflow-y-auto">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-2xl font-bold text-gray-900">Résultats de l'Examen Blanc</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <button onClick={handleClose} className="text-gray-400 hover:text-gray-600">
               <X className="h-5 w-5" />
             </button>
           </div>
@@ -129,7 +151,7 @@ const MockExam: React.FC<MockExamProps> = ({ onClose }) => {
           </div>
 
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="w-full bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
           >
             Terminer
