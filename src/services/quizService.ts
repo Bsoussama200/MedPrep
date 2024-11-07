@@ -1,26 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { useQuestionStore } from '../store/questionsStore';
 
 const genAI = new GoogleGenerativeAI('AIzaSyCU14JKKhknlQ9pQ9GImlEbf6Tz58NUJyQ');
-
-export function getQuestionsForLesson(lessonId: string, count: number = 3): {
-  question: string;
-  choices: Array<{ id: string; text: string; isCorrect: boolean }>;
-  explanation: string;
-}[] {
-  const { questions } = useQuestionStore.getState();
-  const lessonQuestions = questions.filter(q => q.lessonId === lessonId);
-  
-  // Shuffle questions and take requested count
-  return lessonQuestions
-    .sort(() => Math.random() - 0.5)
-    .slice(0, count)
-    .map(q => ({
-      question: q.question,
-      choices: q.choices,
-      explanation: q.explanation
-    }));
-}
 
 export async function generateQuizQuestion(lessonTitle: string, difficulty: number): Promise<{
   question: string;
@@ -28,18 +8,10 @@ export async function generateQuizQuestion(lessonTitle: string, difficulty: numb
   explanation: string;
   hint: string;
 }> {
-  // First try to get a pre-stored question
-  const lessonId = `lesson-${lessonTitle.toLowerCase().replace(/\s+/g, '-')}`;
-  const storedQuestions = getQuestionsForLesson(lessonId, 1);
-  
-  if (storedQuestions.length > 0) {
-    return {
-      ...storedQuestions[0],
-      hint: ''
-    };
+  if (!lessonTitle || typeof difficulty !== 'number') {
+    throw new Error('Invalid parameters for quiz generation');
   }
 
-  // Fallback to AI generation if no stored questions found
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     
@@ -53,7 +25,15 @@ B) [choix B]
 C) [choix C]
 D) [choix D]
 CORRECT: [A, B, C, ou D]
-EXPLANATION: [explication détaillée]`;
+EXPLANATION: [explication détaillée]
+
+Règles importantes:
+- La question doit être claire et précise
+- Les choix doivent être distincts et plausibles
+- Une seule réponse correcte
+- L'explication doit être détaillée et éducative
+- Répondez en français
+- Respectez STRICTEMENT le format ci-dessus`;
 
     const result = await model.generateContent(prompt);
     
@@ -67,7 +47,7 @@ EXPLANATION: [explication détaillée]`;
       throw new Error('Empty response from AI');
     }
 
-    // Parse response
+    // Parse response with better handling of multiline content
     const sections = response.split('\n');
     let question = '';
     const choices: Array<{id: string; text: string; isCorrect: boolean}> = [];
@@ -90,6 +70,7 @@ EXPLANATION: [explication détaillée]`;
         currentSection = 'explanation';
         explanation = line.replace('EXPLANATION:', '').trim();
       } else if (line.trim()) {
+        // Append additional lines to the current section
         switch (currentSection) {
           case 'question':
             question += ' ' + line.trim();
@@ -101,22 +82,39 @@ EXPLANATION: [explication détaillée]`;
       }
     }
 
+    // Validate all required fields
+    if (!question) throw new Error('Question is missing');
+    if (choices.length !== 4) throw new Error('Invalid number of choices');
+    if (!correctAnswer) throw new Error('Correct answer is missing');
+    if (!explanation) throw new Error('Explanation is missing');
+
+    // Validate correct answer format
+    if (!['A', 'B', 'C', 'D'].includes(correctAnswer)) {
+      throw new Error('Invalid correct answer format');
+    }
+
     // Mark correct answer
     const correctChoice = choices.find(c => c.id === correctAnswer);
-    if (correctChoice) {
-      correctChoice.isCorrect = true;
+    if (!correctChoice) {
+      throw new Error('Correct answer does not match any choice');
+    }
+    correctChoice.isCorrect = true;
+
+    // Validate all choices have content
+    if (choices.some(c => !c.text.trim())) {
+      throw new Error('Empty choice detected');
     }
 
     return {
       question,
       choices,
       explanation,
-      hint: ''
+      hint: '' // We don't need the hint text anymore since we're using visual hints
     };
   } catch (error) {
     console.error('Quiz generation error:', error);
     
-    // Provide a fallback question
+    // Provide a fallback question that's always valid
     return {
       question: "Quelle est la première étape dans l'évaluation d'un patient présentant des symptômes non spécifiques ?",
       choices: [
@@ -125,8 +123,8 @@ EXPLANATION: [explication détaillée]`;
         { id: 'C', text: "Les examens complémentaires ciblés", isCorrect: false },
         { id: 'D', text: "Le diagnostic différentiel immédiat", isCorrect: false }
       ],
-      explanation: "L'anamnèse détaillée est toujours la première étape cruciale dans l'évaluation d'un patient. Elle permet de recueillir les informations essentielles sur les symptômes actuels, leur évolution, les antécédents médicaux et familiaux, ainsi que le contexte social et environnemental.",
-      hint: ''
+      explanation: "L'anamnèse détaillée est toujours la première étape cruciale dans l'évaluation d'un patient. Elle permet de recueillir les informations essentielles sur les symptômes actuels, leur évolution, les antécédents médicaux et familiaux, ainsi que le contexte social et environnemental. Cette étape guide l'ensemble de la démarche diagnostique et permet d'orienter efficacement l'examen physique et les examens complémentaires éventuels.",
+      hint: '' // We don't need the hint text anymore since we're using visual hints
     };
   }
 }

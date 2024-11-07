@@ -20,18 +20,27 @@ import {
   Eye,
   Brain as BrainIcon,
   Wind,
-  PersonStanding
+  PersonStanding,
+  GraduationCap
 } from 'lucide-react';
 import { useStore } from '../store';
 import { evaluateProgress } from '../services/aiService';
 import StatsModal from '../components/StatsModal';
 import StudyPlanner from '../components/StudyPlanner';
+import MockExam from '../components/MockExam';
 
 interface NavigationBarProps {
   selectedTheme?: string | null;
   onBackToThemes?: () => void;
   viewMode: 'lessons' | 'themes';
   onReset: () => void;
+}
+
+interface DashboardProps {
+  onThemeSelect: (theme: string) => void;
+  selectedTheme: string | null;
+  viewMode: 'lessons' | 'themes';
+  onViewModeChange: (mode: 'lessons' | 'themes') => void;
 }
 
 function EvaluationModal({ onClose, evaluation }: { onClose: () => void; evaluation: string }) {
@@ -55,48 +64,6 @@ function EvaluationModal({ onClose, evaluation }: { onClose: () => void; evaluat
   );
 }
 
-function CardMenu({ lessonId, onClose }: { lessonId: string; onClose: () => void }) {
-  const { resetProgress } = useStore();
-
-  const handleReset = () => {
-    resetProgress(lessonId);
-    onClose();
-  };
-
-  const handleQuiz = () => {
-    window.location.href = `/lesson/${lessonId}?quiz=true`;
-    onClose();
-  };
-
-  return (
-    <div className="absolute right-0 top-8 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-      <div className="py-1" role="menu">
-        <button
-          onClick={handleReset}
-          className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-        >
-          <RefreshCw className="h-4 w-4 mr-3" />
-          Réinitialiser la Progression
-        </button>
-        <button
-          onClick={handleQuiz}
-          className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-        >
-          <BookOpen className="h-4 w-4 mr-3" />
-          Commencer le Quiz
-        </button>
-      </div>
-    </div>
-  );
-}
-
-interface DashboardProps {
-  onThemeSelect: (theme: string) => void;
-  selectedTheme: string | null;
-  viewMode: 'lessons' | 'themes';
-  onViewModeChange: (mode: 'lessons' | 'themes') => void;
-}
-
 function Dashboard({ onThemeSelect, selectedTheme, viewMode, onViewModeChange }: DashboardProps) {
   const navigate = useNavigate();
   const { lessons } = useStore();
@@ -104,8 +71,23 @@ function Dashboard({ onThemeSelect, selectedTheme, viewMode, onViewModeChange }:
   const [showStats, setShowStats] = useState(false);
   const [showPlanner, setShowPlanner] = useState(false);
   const [showEvaluation, setShowEvaluation] = useState(false);
+  const [showMockExam, setShowMockExam] = useState(false);
   const [evaluation, setEvaluation] = useState('');
   const [isGeneratingEvaluation, setIsGeneratingEvaluation] = useState(false);
+
+  const handleGenerateEvaluation = async () => {
+    setIsGeneratingEvaluation(true);
+    setShowEvaluation(true);
+    try {
+      const result = await evaluateProgress(lessons);
+      setEvaluation(result);
+    } catch (error) {
+      console.error('Failed to generate evaluation:', error);
+      setEvaluation("Une erreur est survenue lors de la génération de l'évaluation.");
+    } finally {
+      setIsGeneratingEvaluation(false);
+    }
+  };
 
   const handleCardClick = (lessonId: string) => {
     navigate(`/lesson/${lessonId}`);
@@ -126,20 +108,6 @@ function Dashboard({ onThemeSelect, selectedTheme, viewMode, onViewModeChange }:
     return Math.round(
       themeLessons.reduce((acc, lesson) => acc + lesson.progress, 0) / themeLessons.length
     );
-  };
-
-  const handleGenerateEvaluation = async () => {
-    setIsGeneratingEvaluation(true);
-    setShowEvaluation(true);
-    try {
-      const result = await evaluateProgress(lessons);
-      setEvaluation(result);
-    } catch (error) {
-      console.error('Failed to generate evaluation:', error);
-      setEvaluation("Une erreur est survenue lors de la génération de l'évaluation.");
-    } finally {
-      setIsGeneratingEvaluation(false);
-    }
   };
 
   const themeIcons: { [key: string]: React.ReactNode } = {
@@ -194,6 +162,13 @@ function Dashboard({ onThemeSelect, selectedTheme, viewMode, onViewModeChange }:
           >
             <Brain className="h-4 w-4" />
             Évaluation IA
+          </button>
+          <button
+            onClick={() => setShowMockExam(true)}
+            className="flex items-center gap-2 bg-white text-indigo-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <GraduationCap className="h-4 w-4" />
+            Examen Blanc
           </button>
           <button
             onClick={() => setShowStats(true)}
@@ -276,10 +251,30 @@ function Dashboard({ onThemeSelect, selectedTheme, viewMode, onViewModeChange }:
                 </div>
 
                 {activeMenu === lesson.id && (
-                  <CardMenu 
-                    lessonId={lesson.id} 
-                    onClose={() => setActiveMenu(null)} 
-                  />
+                  <div className="absolute right-0 top-8 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                    <div className="py-1" role="menu">
+                      <button
+                        onClick={() => {
+                          navigate(`/lesson/${lesson.id}`);
+                          setActiveMenu(null);
+                        }}
+                        className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <RefreshCw className="h-4 w-4 mr-3" />
+                        Réinitialiser la Progression
+                      </button>
+                      <button
+                        onClick={() => {
+                          navigate(`/lesson/${lesson.id}?quiz=true`);
+                          setActiveMenu(null);
+                        }}
+                        className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <BookOpen className="h-4 w-4 mr-3" />
+                        Commencer le Quiz
+                      </button>
+                    </div>
+                  </div>
                 )}
 
                 <div className="mt-3">
@@ -308,6 +303,7 @@ function Dashboard({ onThemeSelect, selectedTheme, viewMode, onViewModeChange }:
 
       {showStats && <StatsModal onClose={() => setShowStats(false)} />}
       {showPlanner && <StudyPlanner onClose={() => setShowPlanner(false)} />}
+      {showMockExam && <MockExam onClose={() => setShowMockExam(false)} />}
       {showEvaluation && (
         <EvaluationModal 
           onClose={() => setShowEvaluation(false)} 
