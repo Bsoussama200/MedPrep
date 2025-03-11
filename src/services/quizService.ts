@@ -13,7 +13,7 @@ export async function generateQuizQuestion(lessonTitle: string, difficulty: numb
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'Gemini-1.5-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
     
     const prompt = `En tant que professeur de médecine, générez une question de quiz sur "${lessonTitle}" avec un niveau de difficulté de ${difficulty}/100.
 
