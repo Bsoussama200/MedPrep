@@ -5,7 +5,7 @@ const genAI = new GoogleGenerativeAI('AIzaSyCU14JKKhknlQ9pQ9GImlEbf6Tz58NUJyQ');
 
 export async function generateStudyPlan(input: StudyPlanInput): Promise<StudyPlan> {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'Gemini-1.5-pro' });
     
     const daysUntilExam = Math.ceil(
       (new Date(input.examDate).getTime() - new Date(input.startDate).getTime()) / (1000 * 60 * 60 * 24)
@@ -91,7 +91,7 @@ export async function getMedicalProfessorResponse(message: string, lessonTitle?:
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'Gemini-1.5-pro' });
     
     const prompt = `Tu es un professeur de médecine expérimenté qui aide un étudiant à préparer ses examens médicaux.
     ${lessonTitle ? `Le sujet actuel est : "${lessonTitle}". ` : ''}
@@ -135,7 +135,7 @@ export async function evaluateProgress(lessons: Lesson[]): Promise<string> {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'Gemini-1.5-pro' });
     
     const lessonsData = lessons.map(lesson => ({
       title: lesson.title,
@@ -191,7 +191,7 @@ export async function evaluateDiagnosis(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'Gemini-1.5-pro' });
     
     const prompt = `En tant que professeur de médecine expérimenté, évalue le diagnostic proposé par l'étudiant.
 
@@ -237,7 +237,7 @@ export async function generatePatientCase(lessonTitle: string): Promise<string> 
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'Gemini-1.5-pro' });
     
     const prompt = `Génère un cas clinique initial lié à "${lessonTitle}". 
 
@@ -279,7 +279,7 @@ export async function getPatientResponse(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'Gemini-1.5-pro' });
     
     const prompt = `Tu es un patient qui présente le cas suivant :
 
